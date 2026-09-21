@@ -234,9 +234,9 @@ export default function MapasMentaisPage() {
           </button>
         </div>
 
-        {/* Filtros e Busca */}
+        {/* Filtros e Busca (Com rolagem horizontal suave e scrollbar estilizada) */}
         <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin">
+          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             {MATERIAS_TJSP.map((cat) => (
               <button
                 key={cat}
