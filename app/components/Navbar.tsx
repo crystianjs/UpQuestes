@@ -56,6 +56,12 @@ export default function Navbar() {
         >
           Caderno de Revisão
         </Link>
+        <Link 
+          href="/mapas-mentais" 
+          className={`px-3 py-2 rounded-xl transition-all ${isActive('/mapas-mentais') ? 'bg-red-600 text-white font-bold shadow-lg shadow-red-600/20' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
+        >
+          Mapas Mentais
+        </Link>
       </div>
 
       {/* Botão de Sair */}
