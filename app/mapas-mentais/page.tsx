@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload } from 'lucide-react';
+import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3 } from 'lucide-react';
 
 interface MapaMentalItem {
   id: string;
@@ -94,7 +94,6 @@ export default function MapasMentaisPage() {
       setUploadingImage(true);
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       
-      // Validação rápida de formato
       if (!['jpg', 'jpeg', 'png'].includes(fileExt || '')) {
         alert('Por favor, envie apenas arquivos nos formatos JPG, JPEG ou PNG.');
         setUploadingImage(false);
@@ -119,10 +118,9 @@ export default function MapasMentaisPage() {
       } else {
         setImagemUrlTemp(publicUrl);
       }
-      alert('Imagem do mapa mental enviada com sucesso!');
     } catch (err) {
       console.error('Erro no upload da imagem:', err);
-      alert('Erro ao enviar imagem. Verifique se o bucket "mapas-mentais" existe no Supabase e está público.');
+      alert('Erro ao enviar imagem. Verifique se o bucket "mapas-mentais" existe no Supabase e tem a política de INSERT configurada.');
     } finally {
       setUploadingImage(false);
     }
@@ -134,7 +132,7 @@ export default function MapasMentaisPage() {
     if (!userId) return;
 
     if (!imagemUrlTemp) {
-      alert('Por favor, faça o upload de uma imagem (JPG, PNG ou JPEG) para o mapa mental.');
+      alert('Por favor, faça o upload de uma imagem para o mapa mental.');
       return;
     }
 
@@ -161,7 +159,6 @@ export default function MapasMentaisPage() {
       setNovoTitulo('');
       setImagemUrlTemp('');
       setModalOpen(false);
-      alert('Mapa Mental adicionado com sucesso!');
     } catch (err) {
       console.error(err);
       alert('Erro ao salvar mapa mental.');
@@ -188,7 +185,6 @@ export default function MapasMentaisPage() {
 
       setMapas(mapas.map(p => p.id === mapaEmEdicao.id ? mapaEmEdicao : p));
       setMapaEmEdicao(null);
-      alert('Mapa Mental atualizado com sucesso!');
     } catch (err) {
       console.error(err);
       alert('Erro ao atualizar mapa mental.');
@@ -209,17 +205,6 @@ export default function MapasMentaisPage() {
     }
   };
 
-  const getCorCard = (cor: string) => {
-    switch (cor) {
-      case 'azul': return 'bg-sky-950/40 border-sky-600/40 text-sky-100';
-      case 'verde': return 'bg-emerald-950/40 border-emerald-600/40 text-emerald-100';
-      case 'amarelo': return 'bg-amber-950/40 border-amber-600/40 text-amber-100';
-      case 'rosa': return 'bg-rose-950/40 border-rose-600/40 text-rose-100';
-      case 'laranja': return 'bg-orange-950/40 border-orange-600/40 text-orange-100';
-      default: return 'bg-zinc-900 border-zinc-800 text-zinc-100';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
@@ -227,9 +212,9 @@ export default function MapasMentaisPage() {
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         
         {/* Cabeçalho */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-red-950/60 border border-red-600/50 flex items-center justify-center text-red-500 shadow-lg shadow-red-950/50 shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-red-950/60 border border-red-600/40 flex items-center justify-center text-red-500 shadow-lg shadow-red-950/50 shrink-0">
               <Network className="w-6 h-6" />
             </div>
             <div>
@@ -238,11 +223,11 @@ export default function MapasMentaisPage() {
                   MAPAS MENTAIS TJSP
                 </h1>
                 <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">
-                  Rede Visual
+                  VUNESP
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Cadastre e visualize os mapas mentais visuais por matéria
+                Seus esquemas visuais e resumos práticos para memorização rápida
               </p>
             </div>
           </div>
@@ -252,21 +237,21 @@ export default function MapasMentaisPage() {
             className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-lg shadow-red-600/20 flex items-center gap-2 transition-all cursor-pointer w-full md:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
-            Adicionar Novo Mapa
+            Novo Mapa Mental
           </button>
         </div>
 
         {/* Filtros e Busca */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin">
             {MATERIAS_TJSP.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setFiltroMateria(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   filtroMateria === cat
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                    : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
+                    ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+                    : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/80'
                 }`}
               >
                 {cat}
@@ -293,70 +278,67 @@ export default function MapasMentaisPage() {
             <p className="text-xs text-zinc-400">Carregando mapas mentais...</p>
           </div>
         ) : mapasFiltrados.length === 0 ? (
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-16 text-center space-y-4">
+          <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-16 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
               <Network className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white">Nenhum mapa mental cadastrado</h3>
+              <h3 className="text-sm font-bold text-white">Nenhum mapa mental encontrado</h3>
               <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                Clique em "Adicionar Novo Mapa" para enviar os prints dos seus esquemas visuais.
+                Gere o conteúdo com o prompt da VUNESP, tire o print e adicione-o ao seu painel.
               </p>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {mapasFiltrados.map((item) => (
               <div 
                 key={item.id}
-                className={`rounded-2xl p-5 border shadow-xl flex flex-col justify-between transition-transform duration-200 hover:-translate-y-1 relative group ${getCorCard(item.cor)}`}
+                className="bg-zinc-950 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all duration-200 group"
               >
-                <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity bg-black/40 p-1 rounded-lg backdrop-blur-xs z-10">
-                  <button 
-                    onClick={() => setMapaEmEdicao(item)}
-                    title="Editar Mapa"
-                    className="p-1 rounded hover:bg-black/40 text-white transition-colors cursor-pointer text-xs font-semibold px-2"
-                  >
-                    Editar
-                  </button>
-                  <button 
-                    onClick={() => handleRemover(item.id)}
-                    title="Remover Mapa"
-                    className="p-1 rounded hover:bg-rose-600 text-white transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                {/* Topo do Card: Matéria e Botões de Ação Discretos */}
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-400 bg-red-950/40 border border-red-600/20 px-2.5 py-1 rounded-lg">
+                    {item.materia}
+                  </span>
+
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => setMapaEmEdicao(item)}
+                      title="Editar Mapa"
+                      className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => handleRemover(item.id)}
+                      title="Excluir Mapa"
+                      className="p-1.5 rounded-lg bg-zinc-900 hover:bg-rose-950/50 text-zinc-300 hover:text-rose-400 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-4 pr-16">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] uppercase font-black tracking-widest bg-black/30 px-2.5 py-1 rounded-lg">
-                      {item.materia}
-                    </span>
-                  </div>
-
-                  <h3 className="text-base font-black tracking-tight text-white">
+                {/* Título do Mapa */}
+                <div className="mb-3">
+                  <h3 className="text-sm font-bold text-zinc-100 leading-snug">
                     {item.titulo}
                   </h3>
                 </div>
 
-                {/* Exibição da Imagem do Mapa em Destaque */}
+                {/* Imagem em Destaque (Estilo de Estudo Limpo) */}
                 {item.imagem_url && (
-                  <div className="pt-4">
+                  <div className="relative rounded-xl overflow-hidden border border-zinc-800/80 bg-zinc-900">
                     <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
                       <img 
                         src={item.imagem_url} 
                         alt={item.titulo} 
-                        className="w-full h-64 object-cover rounded-xl border border-white/20 hover:opacity-95 transition-opacity cursor-pointer shadow-lg"
+                        className="w-full h-56 object-cover hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
                       />
                     </a>
                   </div>
                 )}
-
-                <div className="pt-4 mt-4 border-t border-white/10 flex justify-between items-center text-[11px] font-bold opacity-70">
-                  <span>Esquema VUNESP</span>
-                  <span className="uppercase tracking-widest text-[9px]">TJSP 2026</span>
-                </div>
               </div>
             ))}
           </div>
@@ -394,49 +376,30 @@ export default function MapasMentaisPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Matéria</label>
-                  <select 
-                    value={novaMateria}
-                    onChange={(e) => setNovaMateria(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
-                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Cor do Card</label>
-                  <select 
-                    value={novaCor}
-                    onChange={(e) => setNovaCor(e.target.value as any)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
-                    <option value="azul">Azul</option>
-                    <option value="verde">Verde</option>
-                    <option value="amarelo">Amarelo</option>
-                    <option value="rosa">Rosa</option>
-                    <option value="laranja">Laranja</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-zinc-400 font-semibold">Matéria</label>
+                <select 
+                  value={novaMateria}
+                  onChange={(e) => setNovaMateria(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                >
+                  {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Upload de Imagem (JPG, PNG, JPEG) */}
               <div className="space-y-2 pt-2">
-                <label className="text-zinc-400 font-semibold block">Imagem do Mapa Mental (JPG, PNG, JPEG)</label>
-                <div className="flex items-center gap-3">
-                  <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-3 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all w-full justify-center">
-                    <Upload className="w-4 h-4 text-red-500" />
-                    {uploadingImage ? 'Enviando imagem...' : 'Escolher Arquivo do Computador'}
-                    <input type="file" accept=".jpg, .jpeg, .png" onChange={(e) => handleImageUpload(e, false)} className="hidden" />
-                  </label>
-                </div>
+                <label className="text-zinc-400 font-semibold block">Print do Mapa Mental (JPG, PNG, JPEG)</label>
+                <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-3 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all w-full justify-center">
+                  <Upload className="w-4 h-4 text-red-500" />
+                  {uploadingImage ? 'Enviando imagem...' : 'Selecionar Print do Computador'}
+                  <input type="file" accept=".jpg, .jpeg, .png" onChange={(e) => handleImageUpload(e, false)} className="hidden" />
+                </label>
                 {imagemUrlTemp && (
                   <div className="mt-2 space-y-1">
-                    <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">
+                    <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
                       ✓ Imagem carregada com sucesso!
                     </span>
                     <img src={imagemUrlTemp} alt="Pré-visualização" className="w-full h-32 object-cover rounded-lg border border-zinc-800" />
@@ -456,7 +419,7 @@ export default function MapasMentaisPage() {
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer transition-all"
                 >
-                  <Plus className="w-4 h-4" /> Salvar no Banco
+                  <Plus className="w-4 h-4" /> Salvar Mapa
                 </button>
               </div>
             </form>
@@ -464,7 +427,7 @@ export default function MapasMentaisPage() {
         </div>
       )}
 
-      {/* MODAL: Edição com Upload de Imagem */}
+      {/* MODAL: Edição */}
       {mapaEmEdicao && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 space-y-6 shadow-2xl">
@@ -493,46 +456,27 @@ export default function MapasMentaisPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Matéria</label>
-                  <select 
-                    value={mapaEmEdicao.materia}
-                    onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, materia: e.target.value})}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
-                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Cor</label>
-                  <select 
-                    value={mapaEmEdicao.cor}
-                    onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, cor: e.target.value as any})}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
-                    <option value="azul">Azul</option>
-                    <option value="verde">Verde</option>
-                    <option value="amarelo">Amarelo</option>
-                    <option value="rosa">Rosa</option>
-                    <option value="laranja">Laranja</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-zinc-400 font-semibold">Matéria</label>
+                <select 
+                  value={mapaEmEdicao.materia}
+                  onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, materia: e.target.value})}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                >
+                  {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Upload de Imagem na Edição */}
               <div className="space-y-2 pt-2">
-                <label className="text-zinc-400 font-semibold block">Alterar Imagem (JPG, PNG, JPEG)</label>
-                <div className="flex items-center gap-3">
-                  <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-3 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all w-full justify-center">
-                    <Upload className="w-4 h-4 text-red-500" />
-                    {uploadingImage ? 'Enviando...' : 'Escolher Novo Arquivo'}
-                    <input type="file" accept=".jpg, .jpeg, .png" onChange={(e) => handleImageUpload(e, true)} className="hidden" />
-                  </label>
-                </div>
+                <label className="text-zinc-400 font-semibold block">Alterar Print (JPG, PNG, JPEG)</label>
+                <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-3 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all w-full justify-center">
+                  <Upload className="w-4 h-4 text-red-500" />
+                  {uploadingImage ? 'Enviando...' : 'Escolher Novo Print'}
+                  <input type="file" accept=".jpg, .jpeg, .png" onChange={(e) => handleImageUpload(e, true)} className="hidden" />
+                </label>
                 {mapaEmEdicao.imagem_url && (
                   <div className="mt-2">
                     <img src={mapaEmEdicao.imagem_url} alt="Atual" className="w-full h-32 object-cover rounded-lg border border-zinc-800" />
