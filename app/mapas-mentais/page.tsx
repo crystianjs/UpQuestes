@@ -12,7 +12,7 @@ interface MapaMentalItem {
   materia: string;
   titulo: string;
   imagem_url?: string;
-  cor: 'amarelo' | 'azul' | 'verde' | 'rosa' | 'laranja';
+  cor?: string;
 }
 
 const MATERIAS_TJSP = [
@@ -43,7 +43,6 @@ export default function MapasMentaisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novaMateria, setNovaMateria] = useState('Raciocínio Lógico');
-  const [novaCor, setNovaCor] = useState<'amarelo' | 'azul' | 'verde' | 'rosa' | 'laranja'>('azul');
   const [imagemUrlTemp, setImagemUrlTemp] = useState('');
 
   // Estado de Edição
@@ -78,14 +77,12 @@ export default function MapasMentaisPage() {
     carregarMapas();
   }, [router]);
 
-  // Filtragem por matéria e texto de busca
   const mapasFiltrados = mapas.filter(item => {
     const matchMateria = filtroMateria === 'TODAS AS MATÉRIAS' || item.materia.toLowerCase() === filtroMateria.toLowerCase();
     const matchBusca = item.titulo.toLowerCase().includes(busca.toLowerCase());
     return matchMateria && matchBusca;
   });
 
-  // Função de Upload de Imagem para o Supabase Storage (Bucket 'mapas-mentais')
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdicao = false) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
@@ -120,13 +117,12 @@ export default function MapasMentaisPage() {
       }
     } catch (err) {
       console.error('Erro no upload da imagem:', err);
-      alert('Erro ao enviar imagem. Verifique se o bucket "mapas-mentais" existe no Supabase e tem a política de INSERT configurada.');
+      alert('Erro ao enviar imagem. Verifique o bucket no Supabase.');
     } finally {
       setUploadingImage(false);
     }
   };
 
-  // Adicionar Novo Mapa Mental
   const handleAdicionarMapa = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
@@ -142,7 +138,7 @@ export default function MapasMentaisPage() {
         materia: novaMateria,
         titulo: novoTitulo,
         imagem_url: imagemUrlTemp,
-        cor: novaCor
+        cor: 'branco'
       };
 
       const { data, error } = await supabase
@@ -165,7 +161,6 @@ export default function MapasMentaisPage() {
     }
   };
 
-  // Salvar Edição
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mapaEmEdicao) return;
@@ -177,7 +172,6 @@ export default function MapasMentaisPage() {
           titulo: mapaEmEdicao.titulo,
           materia: mapaEmEdicao.materia,
           imagem_url: mapaEmEdicao.imagem_url,
-          cor: mapaEmEdicao.cor
         })
         .eq('id', mapaEmEdicao.id);
 
@@ -191,7 +185,6 @@ export default function MapasMentaisPage() {
     }
   };
 
-  // Remover Mapa
   const handleRemover = async (id: string) => {
     if (confirm('Deseja excluir permanentemente este mapa mental?')) {
       try {
@@ -227,7 +220,7 @@ export default function MapasMentaisPage() {
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Seus esquemas visuais e resumos práticos para memorização rápida
+                Esquemas visuais focados no padrão de cobrança da banca
               </p>
             </div>
           </div>
@@ -285,56 +278,56 @@ export default function MapasMentaisPage() {
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-white">Nenhum mapa mental encontrado</h3>
               <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                Gere o conteúdo com o prompt da VUNESP, tire o print e adicione-o ao seu painel.
+                Adicione o seu primeiro print gerado pelo prompt da VUNESP.
               </p>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {mapasFiltrados.map((item) => (
               <div 
                 key={item.id}
-                className="bg-zinc-950 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-4 shadow-lg flex flex-col justify-between transition-all duration-200 group"
+                className="bg-[#fcfbf9] text-zinc-950 border border-zinc-300 rounded-2xl p-5 shadow-xl flex flex-col justify-between transition-all duration-200 group relative"
               >
-                {/* Topo do Card: Matéria e Botões de Ação Discretos */}
+                {/* Topo do Card: Matéria e Ações Discretas */}
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-400 bg-red-950/40 border border-red-600/20 px-2.5 py-1 rounded-lg">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-3 py-1 rounded-md">
                     {item.materia}
                   </span>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={() => setMapaEmEdicao(item)}
-                      title="Editar Mapa"
-                      className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                      title="Editar"
+                      className="p-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-700 transition-colors cursor-pointer"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => handleRemover(item.id)}
-                      title="Excluir Mapa"
-                      className="p-1.5 rounded-lg bg-zinc-900 hover:bg-rose-950/50 text-zinc-300 hover:text-rose-400 transition-colors cursor-pointer"
+                      title="Excluir"
+                      className="p-1.5 rounded-lg bg-zinc-200 hover:bg-rose-200 text-zinc-700 hover:text-rose-700 transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
                 {/* Título do Mapa */}
-                <div className="mb-3">
-                  <h3 className="text-sm font-bold text-zinc-100 leading-snug">
+                <div className="mb-4">
+                  <h3 className="text-lg font-black tracking-tight text-zinc-900 leading-snug">
                     {item.titulo}
                   </h3>
                 </div>
 
-                {/* Imagem em Destaque (Estilo de Estudo Limpo) */}
+                {/* Imagem em Tamanho Amplo (Estilo Caderno) */}
                 {item.imagem_url && (
-                  <div className="relative rounded-xl overflow-hidden border border-zinc-800/80 bg-zinc-900">
+                  <div className="relative rounded-xl overflow-hidden border border-zinc-300 bg-white shadow-inner">
                     <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
                       <img 
                         src={item.imagem_url} 
                         alt={item.titulo} 
-                        className="w-full h-56 object-cover hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
+                        className="w-full h-auto max-h-[500px] object-contain hover:scale-[1.01] transition-transform duration-300 cursor-pointer mx-auto bg-white p-1"
                       />
                     </a>
                   </div>
@@ -346,7 +339,7 @@ export default function MapasMentaisPage() {
 
       </main>
 
-      {/* MODAL: Adicionar Novo Mapa com Upload de Imagem */}
+      {/* MODAL: Adicionar Novo Mapa */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 space-y-6 shadow-2xl">
@@ -370,7 +363,7 @@ export default function MapasMentaisPage() {
                   type="text"
                   value={novoTitulo}
                   onChange={(e) => setNovoTitulo(e.target.value)}
-                  placeholder="Ex: Regras de Equivalência e Negação"
+                  placeholder="Ex: Regra Geral de Crase"
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
                   required
                 />
@@ -389,7 +382,6 @@ export default function MapasMentaisPage() {
                 </select>
               </div>
 
-              {/* Upload de Imagem (JPG, PNG, JPEG) */}
               <div className="space-y-2 pt-2">
                 <label className="text-zinc-400 font-semibold block">Print do Mapa Mental (JPG, PNG, JPEG)</label>
                 <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-3 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all w-full justify-center">
@@ -402,7 +394,7 @@ export default function MapasMentaisPage() {
                     <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
                       ✓ Imagem carregada com sucesso!
                     </span>
-                    <img src={imagemUrlTemp} alt="Pré-visualização" className="w-full h-32 object-cover rounded-lg border border-zinc-800" />
+                    <img src={imagemUrlTemp} alt="Pré-visualização" className="w-full h-40 object-contain bg-white rounded-lg border border-zinc-800 p-1" />
                   </div>
                 )}
               </div>
@@ -469,7 +461,6 @@ export default function MapasMentaisPage() {
                 </select>
               </div>
 
-              {/* Upload de Imagem na Edição */}
               <div className="space-y-2 pt-2">
                 <label className="text-zinc-400 font-semibold block">Alterar Print (JPG, PNG, JPEG)</label>
                 <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-3 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all w-full justify-center">
@@ -479,7 +470,7 @@ export default function MapasMentaisPage() {
                 </label>
                 {mapaEmEdicao.imagem_url && (
                   <div className="mt-2">
-                    <img src={mapaEmEdicao.imagem_url} alt="Atual" className="w-full h-32 object-cover rounded-lg border border-zinc-800" />
+                    <img src={mapaEmEdicao.imagem_url} alt="Atual" className="w-full h-40 object-contain bg-white rounded-lg border border-zinc-800 p-1" />
                   </div>
                 )}
               </div>
