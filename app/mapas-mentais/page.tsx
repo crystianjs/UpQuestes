@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3 } from 'lucide-react';
+import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3, Paperclip, Bookmark } from 'lucide-react';
 
 interface MapaMentalItem {
   id: string;
@@ -283,15 +283,25 @@ export default function MapasMentaisPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {mapasFiltrados.map((item) => (
               <div 
                 key={item.id}
-                className="bg-[#fcfbf9] text-zinc-950 border border-zinc-300 rounded-2xl p-5 shadow-xl flex flex-col justify-between transition-all duration-200 group relative"
+                className="bg-[#fefefe] text-zinc-950 border border-zinc-300 rounded-2xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-200 group relative my-2"
               >
-                {/* Topo do Card: Matéria e Ações Discretas */}
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-3 py-1 rounded-md">
+                {/* Grampo Metálico Superior (Estilo Caderno) */}
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-zinc-300 via-zinc-100 to-zinc-400 border border-zinc-400 w-12 h-6 rounded-t-lg shadow-md flex items-center justify-center text-zinc-700 z-10">
+                  <Paperclip className="w-4 h-4 rotate-90 text-zinc-600" />
+                </div>
+
+                {/* Pequeno Adesivo Decorativo Lateral Esquerdo */}
+                <div className="absolute -left-3 top-24 bg-red-600 text-white p-1 rounded-r-md shadow-md rotate-[-5deg] flex items-center justify-center">
+                  <Bookmark className="w-3 h-3" />
+                </div>
+
+                {/* Topo do Card: Matéria e Ações */}
+                <div className="flex justify-between items-center mb-3 mt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 bg-red-100/80 border border-red-200 px-3 py-1 rounded-md">
                     {item.materia}
                   </span>
 
@@ -299,14 +309,14 @@ export default function MapasMentaisPage() {
                     <button 
                       onClick={() => setMapaEmEdicao(item)}
                       title="Editar"
-                      className="p-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-700 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg bg-zinc-200/80 hover:bg-zinc-300 text-zinc-700 transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => handleRemover(item.id)}
                       title="Excluir"
-                      className="p-1.5 rounded-lg bg-zinc-200 hover:bg-rose-200 text-zinc-700 hover:text-rose-700 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg bg-zinc-200/80 hover:bg-rose-200 text-zinc-700 hover:text-rose-700 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -315,19 +325,19 @@ export default function MapasMentaisPage() {
 
                 {/* Título do Mapa */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-black tracking-tight text-zinc-900 leading-snug">
+                  <h3 className="text-xl font-black tracking-tight text-zinc-900 leading-snug">
                     {item.titulo}
                   </h3>
                 </div>
 
-                {/* Imagem em Tamanho Amplo (Estilo Caderno) */}
+                {/* Imagem em Tamanho Amplo (Estilo Folha de Caderno) */}
                 {item.imagem_url && (
                   <div className="relative rounded-xl overflow-hidden border border-zinc-300 bg-white shadow-inner">
                     <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
                       <img 
                         src={item.imagem_url} 
                         alt={item.titulo} 
-                        className="w-full h-auto max-h-[500px] object-contain hover:scale-[1.01] transition-transform duration-300 cursor-pointer mx-auto bg-white p-1"
+                        className="w-full h-auto max-h-[550px] object-contain hover:scale-[1.01] transition-transform duration-300 cursor-pointer mx-auto bg-white p-1"
                       />
                     </a>
                   </div>
