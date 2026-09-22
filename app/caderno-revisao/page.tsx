@@ -36,7 +36,6 @@ const MATERIAS_TJSP = [
   'Estatuto da Pessoa com Deficiência'
 ];
 
-// Ajustado para fundo vermelho forte com texto branco e legibilidade total
 const CORES_MARCA_TEXTO = [
   { name: 'Vermelho TJSP', class: 'bg-red-600 text-white px-1 py-0.5 rounded font-bold shadow-sm', hex: '#dc2626' },
   { name: 'Amarelo', class: 'bg-yellow-400 text-zinc-950 px-1 py-0.5 rounded font-bold shadow-sm', hex: '#facc15' },
@@ -104,13 +103,6 @@ export default function CadernoRevisaoPage() {
     ? postits
     : postits.filter(p => p.materia.toLowerCase() === filtroCategoria.toLowerCase() || p.categoria.toLowerCase() === filtroCategoria.toLowerCase());
 
-  const formatarConteudoTópicos = (texto: string) => {
-    if (!texto) return '';
-    return texto
-      .replace(/\s+(\d+\.)/g, '\n\n$1')
-      .replace(/^(\d+\.)/g, '$1');
-  };
-
   const handleTextSelection = (itemId: string) => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.toString().trim()) {
@@ -167,7 +159,7 @@ export default function CadernoRevisaoPage() {
   };
 
   const renderizarTextoComDestaques = (item: PostIt) => {
-    const texto = formatarConteudoTópicos(item.conteudo);
+    const texto = item.conteudo || '';
     const marcos = item.marcos_texto || [];
 
     if (marcos.length === 0) return texto;
@@ -338,7 +330,7 @@ export default function CadernoRevisaoPage() {
   "materia": "Nome exato da matéria (ex: Língua Portuguesa, Direito Constitucional, etc.)",
   "categoria": "TJSP",
   "titulo": "Título curto focado no tema exato cobrado pela VUNESP",
-  "conteudo": "1. Primeiro ponto essencial da teoria ou regra técnica.\\n\\n2. Segundo ponto essencial explicando a base da matéria.\\n\\n3. Terceiro ponto de fixação estruturado em tópicos um embaixo do outro.",
+  "conteudo": "1. Primeiro ponto essencial da teoria ou regra técnica.\n\n2. Segundo ponto essencial explicando a base da matéria.\n\n3. Terceiro ponto de fixação estruturado em tópicos um embaixo do outro.",
   "status": "Pendente",
   "cor": "amarelo"
 }
@@ -645,7 +637,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 rows={6}
                 value={jsonInput}
                 onChange={(e) => setJsonInput(e.target.value)}
-                placeholder={`{\n  "materia": "Direito Constitucional",\n  "categoria": "TJSP",\n  "titulo": "Direitos Sociais",\n  "conteudo": "1. Tópico um.\\n\\n2. Tópico dois.",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`}
+                placeholder={`{\n  "materia": "Direito Constitucional",\n  "categoria": "TJSP",\n  "titulo": "Direitos Sociais",\n  "conteudo": "1. Tópico um.\n\n2. Tópico dois.",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs font-mono text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
               />
             </div>
