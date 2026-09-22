@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, Highlighter, MessageSquare, Plus } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare } from 'lucide-react';
 
 interface PostIt {
   id: string;
@@ -36,11 +36,12 @@ const MATERIAS_TJSP = [
   'Estatuto da Pessoa com Deficiência'
 ];
 
+// Ajustado para fundo vermelho forte com texto branco e legibilidade total
 const CORES_MARCA_TEXTO = [
-  { name: 'Amarelo', class: 'bg-yellow-300/40 text-yellow-200 border-b-2 border-yellow-400', hex: '#fde047' },
-  { name: 'Verde', class: 'bg-emerald-500/30 text-emerald-200 border-b-2 border-emerald-500', hex: '#10b981' },
-  { name: 'Rosa', class: 'bg-rose-500/30 text-rose-200 border-b-2 border-rose-500', hex: '#f43f5e' },
-  { name: 'Azul', class: 'bg-blue-500/30 text-blue-200 border-b-2 border-blue-500', hex: '#3b82f6' },
+  { name: 'Vermelho TJSP', class: 'bg-red-600 text-white px-1 py-0.5 rounded font-bold shadow-sm', hex: '#dc2626' },
+  { name: 'Amarelo', class: 'bg-yellow-400 text-zinc-950 px-1 py-0.5 rounded font-bold shadow-sm', hex: '#facc15' },
+  { name: 'Verde', class: 'bg-emerald-600 text-white px-1 py-0.5 rounded font-bold shadow-sm', hex: '#059669' },
+  { name: 'Azul', class: 'bg-blue-600 text-white px-1 py-0.5 rounded font-bold shadow-sm', hex: '#2563eb' },
 ];
 
 export default function CadernoRevisaoPage() {
@@ -50,17 +51,14 @@ export default function CadernoRevisaoPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Estados dos Modais
   const [modalJsonOpen, setModalJsonOpen] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
   const [copiado, setCopiado] = useState(false);
   const [postitEmEdicao, setPostitEmEdicao] = useState<PostIt | null>(null);
   
-  // Estado de upload de imagem
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagemUrlTemp, setImagemUrlTemp] = useState('');
 
-  // Estados de Comentários e Marca-Texto por Card
   const [comentariosAbertos, setComentariosAbertos] = useState<{ [key: string]: boolean }>({});
   const [textoComentarioTemp, setTextoComentarioTemp] = useState<{ [key: string]: string }>({});
   const [menuSelecao, setMenuSelecao] = useState<{
@@ -113,7 +111,6 @@ export default function CadernoRevisaoPage() {
       .replace(/^(\d+\.)/g, '$1');
   };
 
-  // Capturar seleção de texto ao arrastar o mouse para exibir o menu flutuante idêntico ao de questões
   const handleTextSelection = (itemId: string) => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.toString().trim()) {
@@ -184,7 +181,7 @@ export default function CadernoRevisaoPage() {
         partes.push(texto.substring(ultimoIndice, m.start));
       }
       partes.push(
-        <span key={idx} className={`px-1 py-0.5 rounded font-medium ${m.color}`}>
+        <span key={idx} className={m.color}>
           {texto.substring(m.start, m.end)}
         </span>
       );
@@ -436,7 +433,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         </div>
 
-        {/* Menu Flutuante do Marca-Texto (Idêntico ao do Portal de Questões) */}
+        {/* Menu Flutuante do Marca-Texto */}
         {menuSelecao && (
           <div 
             className="fixed z-50 bg-white/95 backdrop-blur-md border border-zinc-300 shadow-2xl rounded-full px-3 py-1.5 flex items-center gap-2.5 -translate-x-1/2 -translate-y-16 animate-in fade-in zoom-in duration-150"
@@ -524,7 +521,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                         {renderizarTextoComDestaques(item)}
                       </p>
 
-                      {/* Exibição da Imagem / Mapa Mental se houver */}
                       {item.imagem_url && (
                         <div className="pt-2 border-t border-black/10">
                           <span className="text-[10px] uppercase font-bold opacity-70 block mb-1">Mapa Mental / Imagem:</span>
