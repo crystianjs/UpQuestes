@@ -25,6 +25,7 @@ const MATERIAS_TJSP = [
 export default function QuestoesPage() {
   const router = useRouter();
   const [materia, setMateria] = useState(MATERIAS_TJSP[0]);
+  const [assunto, setAssunto] = useState('');
   const [totalFeitas, setTotalFeitas] = useState<number | ''>(1);
   const [acertos, setAcertos] = useState<number | ''>(1);
   const [erros, setErros] = useState<number | ''>(0);
@@ -85,6 +86,7 @@ export default function QuestoesPage() {
       const { error } = await supabase.from('user_questions').insert([
         {
           materia: materia,
+          assunto: assunto.trim() || null,
           total_feitas: totalFeitas,
           acertos: acertos,
           erros: erros,
@@ -96,6 +98,7 @@ export default function QuestoesPage() {
 
       setSucesso(true);
       // Reset parcial útil
+      setAssunto('');
       setTotalFeitas(1);
       setAcertos(1);
       setErros(0);
@@ -139,17 +142,30 @@ export default function QuestoesPage() {
 
         <form onSubmit={handleSalvarQuestoes} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
           
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Disciplina / Matéria</label>
-            <select 
-              value={materia}
-              onChange={(e) => setMateria(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-            >
-              {MATERIAS_TJSP.map((mat) => (
-                <option key={mat} value={mat}>{mat}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Disciplina / Matéria</label>
+              <select 
+                value={materia}
+                onChange={(e) => setMateria(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+              >
+                {MATERIAS_TJSP.map((mat) => (
+                  <option key={mat} value={mat}>{mat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Assunto / Tópico (Opcional)</label>
+              <input 
+                type="text"
+                placeholder="Ex: Negação de Proposições, Art. 5º CF..."
+                value={assunto}
+                onChange={(e) => setAssunto(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
