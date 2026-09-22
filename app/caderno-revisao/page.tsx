@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare, Highlighter } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, MessageSquare, Highlighter } from 'lucide-react';
 
 interface PostIt {
   id: string;
@@ -13,7 +13,6 @@ interface PostIt {
   categoria: string;
   titulo: string;
   conteudo: string;
-  imagem_url?: string;
   status: 'Pendente' | 'Revisando' | 'Dominada';
   cor: 'amarelo' | 'azul' | 'verde' | 'rosa' | 'laranja';
   comentarios?: string;
@@ -54,9 +53,6 @@ export default function CadernoRevisaoPage() {
   const [copiado, setCopiado] = useState(false);
   const [postitEmEdicao, setPostitEmEdicao] = useState<PostIt | null>(null);
   
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagemUrlTemp, setImagemUrlTemp] = useState('');
-
   const [comentariosAbertos, setComentariosAbertos] = useState<{ [key: string]: boolean }>({});
   const [textoComentarioTemp, setTextoComentarioTemp] = useState<{ [key: string]: string }>({});
 
@@ -161,62 +157,26 @@ export default function CadernoRevisaoPage() {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdicao = false) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-
-    try {
-      setUploadingImage(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('mapas-mentais')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('mapas-mentais')
-        .getPublicUrl(filePath);
-
-      if (isEdicao && postitEmEdicao) {
-        setPostitEmEdicao({ ...postitEmEdicao, imagem_url: publicUrl });
-      } else {
-        setImagemUrlTemp(publicUrl);
-      }
-      alert('Imagem enviada com sucesso!');
-    } catch (err) {
-      console.error('Erro no upload da imagem:', err);
-      alert('Erro ao enviar imagem. Verifique se o bucket "mapas-mentais" existe no Supabase e é público.');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   const handleAdicionarJson = async () => {
     if (!userId) return;
     try {
-      let jsonString = jsonInput.trim();
-      if (jsonString.startsWith('```')) {
-        jsonString = jsonString.replace(/^```(json)?/, '').replace(/```$/, '').trim();
+      let rawInput = jsonInput.trim();
+      const startIdx = rawInput.indexOf('{');
+      const endIdx = rawInput.lastIndexOf('}');
+
+      if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+        throw new Error('Estrutura JSON não encontrada.');
       }
 
-      const firstBrace = jsonString.indexOf('{');
-      const lastBrace = jsonString.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-      }
+      const cleanJsonString = rawInput.substring(startIdx, endIdx + 1);
+      const parsed = JSON.parse(cleanJsonString);
 
-      const parsed = JSON.parse(jsonString);
       const novoItem = {
         user_id: userId,
         materia: parsed.materia || 'Direito Constitucional',
         categoria: parsed.categoria || 'TJSP',
         titulo: parsed.titulo || 'Resumo de Erros',
         conteudo: parsed.conteudo || parsed.resumo || 'Sem conteúdo especificado.',
-        imagem_url: imagemUrlTemp || parsed.imagem_url || null,
         status: parsed.status || 'Pendente',
         cor: parsed.cor || 'amarelo'
       };
@@ -233,12 +193,11 @@ export default function CadernoRevisaoPage() {
       }
 
       setJsonInput('');
-      setImagemUrlTemp('');
       setModalJsonOpen(false);
       alert('Resumo salvo com sucesso no Banco!');
     } catch (err) {
-      console.error(err);
-      alert('Erro no formato JSON. Verifique se copiou corretamente.');
+      console.error('Erro ao processar JSON:', err);
+      alert('Erro no formato JSON. Verifique se você colou apenas o objeto JSON gerado pela IA (o trecho entre chaves {}).');
     }
   };
 
@@ -254,7 +213,6 @@ export default function CadernoRevisaoPage() {
           conteudo: postitEmEdicao.conteudo,
           status: postitEmEdicao.status,
           cor: postitEmEdicao.cor,
-          imagem_url: postitEmEdicao.imagem_url,
           materia: postitEmEdicao.materia
         })
         .eq('id', postitEmEdicao.id);
@@ -343,7 +301,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Cards interativos com Marca-Texto direto no Editor, Comentários e Mapas Mentais
+                Cards interativos com Marca-Texto direto no Editor e Comentários
               </p>
             </div>
           </div>
@@ -437,24 +395,11 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                       {item.titulo}
                     </h3>
 
-                    <div className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin bg-black/5 p-2.5 rounded-xl border border-black/10">
+                    <div className="max-h-[260px] overflow-y-auto pr-1 space-y-3 scrollbar-thin bg-black/5 p-2.5 rounded-xl border border-black/10">
                       <div 
                         className="text-xs leading-relaxed opacity-90 whitespace-pre-line"
                         dangerouslySetInnerHTML={{ __html: item.conteudo || '' }}
                       />
-
-                      {item.imagem_url && (
-                        <div className="pt-2 border-t border-black/10">
-                          <span className="text-[10px] uppercase font-bold opacity-70 block mb-1">Mapa Mental / Imagem:</span>
-                          <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
-                            <img 
-                              src={item.imagem_url} 
-                              alt="Mapa Mental" 
-                              className="w-full h-32 object-cover rounded-lg border border-black/20 hover:opacity-90 transition-opacity cursor-pointer"
-                            />
-                          </a>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -528,7 +473,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
             <div className="flex justify-between items-center">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Code className="w-5 h-5 text-red-500" />
-                Adicionar Resumo (JSON) & Imagem
+                Adicionar Resumo (JSON)
               </h3>
               <button 
                 onClick={() => setModalJsonOpen(false)}
@@ -567,24 +512,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 placeholder={`{\n  "materia": "Direito Constitucional",\n  "categoria": "TJSP",\n  "titulo": "Direitos Sociais",\n  "conteudo": "1. Tópico um.\n\n2. Tópico dois.",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs font-mono text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
               />
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <ImageIcon className="w-3.5 h-3.5 text-red-500" /> 3. Anexar Imagem / Mapa Mental (Opcional):
-              </span>
-              <div className="flex items-center gap-3">
-                <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all">
-                  <Upload className="w-4 h-4 text-red-500" />
-                  {uploadingImage ? 'Enviando imagem...' : 'Escolher do Computador'}
-                  <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, false)} className="hidden" />
-                </label>
-                {imagemUrlTemp && (
-                  <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">
-                    <Check className="w-3.5 h-3.5" /> Imagem anexada!
-                  </span>
-                )}
-              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2 border-t border-zinc-900">
@@ -712,24 +639,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 font-mono text-xs focus:outline-none focus:border-red-600 leading-relaxed"
                   required
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-zinc-400 font-semibold flex items-center gap-1">
-                  <ImageIcon className="w-3.5 h-3.5 text-red-500" /> Atualizar / Adicionar Imagem (Mapa Mental)
-                </label>
-                <div className="flex items-center gap-3">
-                  <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all">
-                    <Upload className="w-4 h-4 text-red-500" />
-                    {uploadingImage ? 'Enviando...' : 'Escolher Nova Imagem'}
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, true)} className="hidden" />
-                  </label>
-                  {postitEmEdicao.imagem_url && (
-                    <span className="text-xs text-emerald-400 truncate max-w-[200px]" title={postitEmEdicao.imagem_url}>
-                      Imagem vinculada
-                    </span>
-                  )}
-                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-zinc-900">
