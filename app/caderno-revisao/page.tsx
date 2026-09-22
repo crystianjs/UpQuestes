@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare, Eraser } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare, Eraser, Highlighter } from 'lucide-react';
 
 interface PostIt {
   id: string;
@@ -60,16 +60,9 @@ export default function CadernoRevisaoPage() {
 
   const [comentariosAbertos, setComentariosAbertos] = useState<{ [key: string]: boolean }>({});
   const [textoComentarioTemp, setTextoComentarioTemp] = useState<{ [key: string]: string }>({});
-  const [menuSelecao, setMenuSelecao] = useState<{
-    itemId: string;
-    text: string;
-    start: number;
-    end: number;
-    x: number;
-    y: number;
-  } | null>(null);
 
-  const textRefs = useRef<{ [key: string]: HTMLParagraphElement | null }>({});
+  // Referência e controle para seleção de texto estritamente dentro do Modal de Edição
+  const textareaEdicaoRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     async function carregarDados() {
@@ -103,88 +96,31 @@ export default function CadernoRevisaoPage() {
     ? postits
     : postits.filter(p => p.materia.toLowerCase() === filtroCategoria.toLowerCase() || p.categoria.toLowerCase() === filtroCategoria.toLowerCase());
 
-  const handleTextSelection = (itemId: string) => {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+  // Função para aplicar destaque diretamente baseada nos índices exatos de seleção do textarea de edição
+  const aplicarDestaqueNoEditor = (colorClass: string) => {
+    if (!postitEmEdicao || !textareaEdicaoRef.current) return;
+    const start = textareaEdicaoRef.current.selectionStart;
+    const end = textareaEdicaoRef.current.selectionEnd;
+
+    if (start === end) {
+      alert('Selecione um trecho do texto no campo de conteúdo para aplicar o marca-texto.');
       return;
     }
 
-    const range = selection.getRangeAt(0);
-    const container = textRefs.current[itemId];
-
-    if (!container || !container.contains(range.commonAncestorContainer)) return;
-
-    // Cria um range auxiliar cobrindo todo o texto interno do parágrafo de conteúdo sem marca-tags ativas prévias
-    const preRange = document.createRange();
-    preRange.selectNodeContents(container);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    
-    const selectedText = selection.toString();
-    const start = preRange.toString().length;
-    const end = start + selectedText.length;
-
-    const rect = range.getBoundingClientRect();
-
-    setMenuSelecao({
-      itemId,
-      text: selectedText,
-      start,
-      end,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10
-    });
+    const marcosAtuais = postitEmEdicao.marcos_texto || [];
+    const novosMarcos = [...marcosAtuais, { start, end, color: colorClass }];
+    setPostitEmEdicao({ ...postitEmEdicao, marcos_texto: novosMarcos });
   };
 
-  const aplicarDestaque = async (colorClass: string) => {
-    if (!menuSelecao) return;
-    const { itemId, start, end } = menuSelecao;
+  const limparDestaquesNoEditor = () => {
+    if (!postitEmEdicao || !textareaEdicaoRef.current) return;
+    const start = textareaEdicaoRef.current.selectionStart;
+    const end = textareaEdicaoRef.current.selectionEnd;
 
-    const itemAlvo = postits.find(p => p.id === itemId);
-    if (!itemAlvo) return;
-
-    const novosMarcos = [...(itemAlvo.marcos_texto || []), { start, end, color: colorClass }];
-
-    try {
-      const { error } = await supabase
-        .from('caderno_revisao')
-        .update({ marcos_texto: novosMarcos })
-        .eq('id', itemId);
-
-      if (error) throw error;
-
-      setPostits(postits.map(p => p.id === itemId ? { ...p, marcos_texto: novosMarcos } : p));
-      setMenuSelecao(null);
-      window.getSelection()?.removeAllRanges();
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao salvar marca-texto.');
-    }
-  };
-
-  const limparDestaquesIntervalo = async () => {
-    if (!menuSelecao) return;
-    const { itemId, start, end } = menuSelecao;
-
-    const itemAlvo = postits.find(p => p.id === itemId);
-    if (!itemAlvo || !itemAlvo.marcos_texto) return;
-
-    const novosMarcos = itemAlvo.marcos_texto.filter(m => !(m.start < end && m.end > start));
-
-    try {
-      const { error } = await supabase
-        .from('caderno_revisao')
-        .update({ marcos_texto: novosMarcos })
-        .eq('id', itemId);
-
-      if (error) throw error;
-
-      setPostits(postits.map(p => p.id === itemId ? { ...p, marcos_texto: novosMarcos } : p));
-      setMenuSelecao(null);
-      window.getSelection()?.removeAllRanges();
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao limpar marca-texto.');
-    }
+    const marcosAtuais = postitEmEdicao.marcos_texto || [];
+    // Remove os marcos que interceptam o intervalo selecionado
+    const novosMarcos = marcosAtuais.filter(m => !(m.start < end && m.end > start));
+    setPostitEmEdicao({ ...postitEmEdicao, marcos_texto: novosMarcos });
   };
 
   const renderizarTextoComDestaques = (item: PostIt) => {
@@ -193,7 +129,6 @@ export default function CadernoRevisaoPage() {
 
     if (marcos.length === 0) return texto;
 
-    // Ordena e limpa sobreposições para evitar conflitos de renderização de tags HTML
     const marcosOrdenados = [...marcos].sort((a, b) => a.start - b.start);
     const partes = [];
     let ultimoIndice = 0;
@@ -331,7 +266,8 @@ export default function CadernoRevisaoPage() {
           status: postitEmEdicao.status,
           cor: postitEmEdicao.cor,
           imagem_url: postitEmEdicao.imagem_url,
-          materia: postitEmEdicao.materia
+          materia: postitEmEdicao.materia,
+          marcos_texto: postitEmEdicao.marcos_texto || []
         })
         .eq('id', postitEmEdicao.id);
 
@@ -399,7 +335,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white" onClick={() => menuSelecao && setMenuSelecao(null)}>
+    <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
@@ -420,7 +356,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Cards interativos com Marca-Texto por seleção, Comentários e Mapas Mentais
+                Cards interativos com Marca-Texto via Editor, Comentários e Mapas Mentais
               </p>
             </div>
           </div>
@@ -458,33 +394,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         </div>
 
-        {/* Menu Flutuante do Marca-Texto com Borracha de Limpeza */}
-        {menuSelecao && (
-          <div 
-            className="fixed z-50 bg-white/95 backdrop-blur-md border border-zinc-300 shadow-2xl rounded-full px-3 py-1.5 flex items-center gap-2.5 -translate-x-1/2 -translate-y-16 animate-in fade-in zoom-in duration-150"
-            style={{ left: menuSelecao.x, top: menuSelecao.y }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {CORES_MARCA_TEXTO.map((cor) => (
-              <button
-                key={cor.name}
-                onClick={() => aplicarDestaque(cor.class)}
-                className="w-5 h-5 rounded-full transition-transform hover:scale-125 shadow-sm border border-black/10 cursor-pointer"
-                style={{ backgroundColor: cor.hex }}
-                title={`Destacar em ${cor.name}`}
-              />
-            ))}
-            <div className="w-[1px] h-4 bg-zinc-300 mx-0.5"></div>
-            <button
-              onClick={limparDestaquesIntervalo}
-              className="w-5 h-5 rounded-full bg-zinc-200 hover:bg-red-600 hover:text-white text-zinc-700 flex items-center justify-center transition-all shadow-sm cursor-pointer"
-              title="Remover Destaque da Seleção"
-            >
-              <Eraser className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-
         {/* Listagem / Loading */}
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
@@ -517,7 +426,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity bg-black/10 p-1 rounded-lg backdrop-blur-xs">
                     <button 
                       onClick={() => setPostitEmEdicao(item)}
-                      title="Editar Card"
+                      title="Editar Card e Gerenciar Marca-Textos"
                       className="p-1 rounded hover:bg-black/20 text-zinc-900 transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
@@ -543,14 +452,9 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                       {item.titulo}
                     </h3>
 
-                    {/* Descrição com Marca-Texto por Seleção Direta isolada */}
+                    {/* Descrição com Marca-Texto renderizado com segurança */}
                     <div className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin bg-black/5 p-2.5 rounded-xl border border-black/10">
-                      <p 
-                        ref={el => { textRefs.current[idCard] = el; }}
-                        onMouseUp={() => handleTextSelection(idCard)}
-                        className="text-xs leading-relaxed opacity-90 whitespace-pre-line select-text cursor-text"
-                        title="Selecione qualquer trecho do texto abaixo com o mouse para abrir o marca-texto ou a borracha"
-                      >
+                      <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line">
                         {renderizarTextoComDestaques(item)}
                       </p>
 
@@ -719,14 +623,14 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
         </div>
       )}
 
-      {/* MODAL: Edição com Upload de Imagem */}
+      {/* MODAL: Edição com Controles Diretos de Marca-Texto no Editor */}
       {postitEmEdicao && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-red-500" />
-                Editar Resumo
+                Editar Resumo & Marca-Textos
               </h3>
               <button 
                 onClick={() => setPostitEmEdicao(null)}
@@ -748,20 +652,20 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-400 font-semibold">Matéria</label>
-                <select 
-                  value={postitEmEdicao.materia}
-                  onChange={(e) => setPostitEmEdicao({...postitEmEdicao, materia: e.target.value})}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                >
-                  {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Matéria</label>
+                  <select 
+                    value={postitEmEdicao.materia}
+                    onChange={(e) => setPostitEmEdicao({...postitEmEdicao, materia: e.target.value})}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  >
+                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Status</label>
                   <select 
@@ -776,7 +680,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Cor</label>
+                  <label className="text-zinc-400 font-semibold">Cor do Card</label>
                   <select 
                     value={postitEmEdicao.cor}
                     onChange={(e) => setPostitEmEdicao({...postitEmEdicao, cor: e.target.value as any})}
@@ -791,15 +695,56 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-400 font-semibold">Conteúdo em Tópicos</label>
+              {/* Bloco de Conteúdo com Barra de Marca-Texto Integrada */}
+              <div className="space-y-2 pt-2 border-t border-zinc-900">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <label className="text-zinc-300 font-bold flex items-center gap-1.5">
+                    <Highlighter className="w-3.5 h-3.5 text-red-500" /> Conteúdo e Ferramenta de Destaque
+                  </label>
+                  
+                  {/* Botões de Aplicação de Cor e Limpeza Baseados na Seleção do Textarea */}
+                  <div className="flex items-center gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 flex-wrap">
+                    <span className="text-[10px] text-zinc-400 font-semibold px-1">Grifar seleção:</span>
+                    {CORES_MARCA_TEXTO.map((cor) => (
+                      <button
+                        key={cor.name}
+                        type="button"
+                        onClick={() => aplicarDestaqueNoEditor(cor.class)}
+                        className="w-5 h-5 rounded-md transition-transform hover:scale-110 shadow-sm border border-black/20 cursor-pointer"
+                        style={{ backgroundColor: cor.hex }}
+                        title={`Aplicar ${cor.name} no texto selecionado acima`}
+                      />
+                    ))}
+                    <div className="w-[1px] h-4 bg-zinc-700 mx-1"></div>
+                    <button
+                      type="button"
+                      onClick={limparDestaquesNoEditor}
+                      className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-rose-950 text-zinc-300 hover:text-rose-300 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      title="Remove qualquer marca-texto do trecho selecionado"
+                    >
+                      <Eraser className="w-3 h-3" /> Limpar Destaque
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-zinc-500 italic">
+                  Dica: Selecione um trecho do texto abaixo com o mouse e clique em uma cor acima para grifá-lo com precisão absoluta.
+                </p>
+
                 <textarea 
-                  rows={5}
+                  ref={textareaEdicaoRef}
+                  rows={6}
                   value={postitEmEdicao.conteudo}
                   onChange={(e) => setPostitEmEdicao({...postitEmEdicao, conteudo: e.target.value})}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600 leading-relaxed font-mono text-[11px]"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600 leading-relaxed font-mono text-xs select-text"
                   required
                 />
+
+                {postitEmEdicao.marcos_texto && postitEmEdicao.marcos_texto.length > 0 && (
+                  <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Este resumo possui {postitEmEdicao.marcos_texto.length} trecho(s) grifado(s).
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -816,7 +761,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-3 border-t border-zinc-900">
                 <button 
                   type="button"
                   onClick={() => setPostitEmEdicao(null)}
