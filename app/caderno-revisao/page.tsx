@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, Highlighter, MessageSquare, Plus } from 'lucide-react';
 
 interface PostIt {
   id: string;
@@ -16,6 +16,8 @@ interface PostIt {
   imagem_url?: string;
   status: 'Pendente' | 'Revisando' | 'Dominada';
   cor: 'amarelo' | 'azul' | 'verde' | 'rosa' | 'laranja';
+  comentarios?: string;
+  marcos_texto?: { start: number; end: number; color: string }[];
 }
 
 const MATERIAS_TJSP = [
@@ -34,6 +36,13 @@ const MATERIAS_TJSP = [
   'Estatuto da Pessoa com Deficiência'
 ];
 
+const CORES_MARCA_TEXTO = [
+  { name: 'Amarelo', class: 'bg-yellow-300/40 text-yellow-200 border-b-2 border-yellow-400', hex: '#fde047' },
+  { name: 'Verde', class: 'bg-emerald-500/30 text-emerald-200 border-b-2 border-emerald-500', hex: '#10b981' },
+  { name: 'Rosa', class: 'bg-rose-500/30 text-rose-200 border-b-2 border-rose-500', hex: '#f43f5e' },
+  { name: 'Azul', class: 'bg-blue-500/30 text-blue-200 border-b-2 border-blue-500', hex: '#3b82f6' },
+];
+
 export default function CadernoRevisaoPage() {
   const router = useRouter();
   const [filtroCategoria, setFiltroCategoria] = useState<string>('TODAS AS MATÉRIAS');
@@ -50,6 +59,20 @@ export default function CadernoRevisaoPage() {
   // Estado de upload de imagem
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagemUrlTemp, setImagemUrlTemp] = useState('');
+
+  // Estados de Comentários e Marca-Texto por Card
+  const [comentariosAbertos, setComentariosAbertos] = useState<{ [key: string]: boolean }>({});
+  const [textoComentarioTemp, setTextoComentarioTemp] = useState<{ [key: string]: string }>({});
+  const [menuSelecao, setMenuSelecao] = useState<{
+    itemId: string;
+    text: string;
+    start: number;
+    end: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const textRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     async function carregarDados() {
@@ -83,7 +106,6 @@ export default function CadernoRevisaoPage() {
     ? postits
     : postits.filter(p => p.materia.toLowerCase() === filtroCategoria.toLowerCase() || p.categoria.toLowerCase() === filtroCategoria.toLowerCase());
 
-  // Função auxiliar para quebrar tópicos automaticamente se vierem juntos
   const formatarConteudoTópicos = (texto: string) => {
     if (!texto) return '';
     return texto
@@ -91,7 +113,118 @@ export default function CadernoRevisaoPage() {
       .replace(/^(\d+\.)/g, '$1');
   };
 
-  // Upload de Imagem para o Supabase Storage (Bucket 'mapas-mentais')
+  // Capturar seleção de texto para o Marca-Texto
+  const handleTextSelection = (itemId: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const container = textRefs.current[itemId];
+
+    if (!container || !container.contains(range.commonAncestorContainer)) return;
+
+    const preRange = range.cloneRange();
+    preRange.selectNodeContents(container);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    const start = preRange.toString().length;
+    const end = start + selection.toString().length;
+
+    const rect = range.getBoundingClientRect();
+
+    setMenuSelecao({
+      itemId,
+      text: selection.toString(),
+      start,
+      end,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10
+    });
+  };
+
+  const aplicarDestaque = async (colorClass: string) => {
+    if (!menuSelecao) return;
+    const { itemId, start, end } = menuSelecao;
+
+    const itemAlvo = postits.find(p => p.id === itemId);
+    if (!itemAlvo) return;
+
+    const novosMarcos = [...(itemAlvo.marcos_texto || []), { start, end, color: colorClass }];
+
+    try {
+      const { error } = await supabase
+        .from('caderno_revisao')
+        .update({ marcos_texto: novosMarcos })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setPostits(postits.map(p => p.id === itemId ? { ...p, marcos_texto: novosMarcos } : p));
+      setMenuSelecao(null);
+      window.getSelection()?.removeAllRanges();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar marca-texto.');
+    }
+  };
+
+  const renderizarTextoComDestaques = (item: PostIt) => {
+    const texto = formatarConteudoTópicos(item.conteudo);
+    const marcos = item.marcos_texto || [];
+
+    if (marcos.length === 0) return texto;
+
+    const marcosOrdenados = [...marcos].sort((a, b) => a.start - b.start);
+    const partes = [];
+    let ultimoIndice = 0;
+
+    marcosOrdenados.forEach((m, idx) => {
+      if (m.start > ultimoIndice) {
+        partes.push(texto.substring(ultimoIndice, m.start));
+      }
+      partes.push(
+        <span key={idx} className={`px-1 py-0.5 rounded font-medium ${m.color}`}>
+          {texto.substring(m.start, m.end)}
+        </span>
+      );
+      ultimoIndice = Math.max(ultimoIndice, m.end);
+    });
+
+    if (ultimoIndice < texto.length) {
+      partes.push(texto.substring(ultimoIndice));
+    }
+
+    return partes;
+  };
+
+  const handleSalvarComentarioRodape = async (itemId: string) => {
+    const textoComentario = textoComentarioTemp[itemId];
+    if (!textoComentario) return;
+
+    const itemAlvo = postits.find(p => p.id === itemId);
+    if (!itemAlvo) return;
+
+    const novoComentarioCompleto = itemAlvo.comentarios 
+      ? `${itemAlvo.comentarios}\n\n- ${textoComentario}` 
+      : `- ${textoComentario}`;
+
+    try {
+      const { error } = await supabase
+        .from('caderno_revisao')
+        .update({ comentarios: novoComentarioCompleto })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setPostits(postits.map(p => p.id === itemId ? { ...p, comentarios: novoComentarioCompleto } : p));
+      setTextoComentarioTemp({ ...textoComentarioTemp, [itemId]: '' });
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar comentário.');
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdicao = false) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
@@ -102,7 +235,6 @@ export default function CadernoRevisaoPage() {
       const fileName = `${userId}-${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // Certifique-se de criar um bucket público chamado 'mapas-mentais' no seu Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('mapas-mentais')
         .upload(filePath, file);
@@ -127,7 +259,6 @@ export default function CadernoRevisaoPage() {
     }
   };
 
-  // Adicionar via JSON
   const handleAdicionarJson = async () => {
     if (!userId) return;
     try {
@@ -140,7 +271,8 @@ export default function CadernoRevisaoPage() {
         conteudo: parsed.conteudo || parsed.resumo || 'Sem conteúdo especificado.',
         imagem_url: imagemUrlTemp || parsed.imagem_url || null,
         status: parsed.status || 'Pendente',
-        cor: parsed.cor || 'amarelo'
+        cor: parsed.cor || 'amarelo',
+        marcos_texto: []
       };
 
       const { data, error } = await supabase
@@ -164,7 +296,6 @@ export default function CadernoRevisaoPage() {
     }
   };
 
-  // Salvar Edição
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postitEmEdicao) return;
@@ -177,7 +308,8 @@ export default function CadernoRevisaoPage() {
           conteudo: postitEmEdicao.conteudo,
           status: postitEmEdicao.status,
           cor: postitEmEdicao.cor,
-          imagem_url: postitEmEdicao.imagem_url
+          imagem_url: postitEmEdicao.imagem_url,
+          materia: postitEmEdicao.materia
         })
         .eq('id', postitEmEdicao.id);
 
@@ -191,7 +323,6 @@ export default function CadernoRevisaoPage() {
     }
   };
 
-  // Remover Post-it
   const handleRemover = async (id: string) => {
     if (confirm('Deseja excluir permanentemente este resumo?')) {
       try {
@@ -246,7 +377,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white" onClick={() => menuSelecao && setMenuSelecao(null)}>
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
@@ -267,7 +398,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Post-its em Tópicos com Suporte a Imagem / Mapa Mental
+                Post-its interativos com Marca-Texto, Comentários e Mapas Mentais
               </p>
             </div>
           </div>
@@ -305,6 +436,28 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         </div>
 
+        {/* Menu Flutuante do Marca-Texto */}
+        {menuSelecao && (
+          <div 
+            className="fixed z-50 bg-zinc-900 border border-zinc-700 shadow-2xl rounded-xl p-2 flex items-center gap-2 -translate-x-1/2 -translate-y-14 animate-in fade-in zoom-in duration-150"
+            style={{ left: menuSelecao.x, top: menuSelecao.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-1.5 px-2 text-[10px] text-zinc-400 font-bold border-r border-zinc-700">
+              <Highlighter className="w-3.5 h-3.5 text-red-500" /> Destaque:
+            </div>
+            {CORES_MARCA_TEXTO.map((cor) => (
+              <button
+                key={cor.name}
+                onClick={() => aplicarDestaque(cor.class)}
+                className="w-6 h-6 rounded-lg transition-transform hover:scale-110 shadow-sm border border-black/20 cursor-pointer"
+                style={{ backgroundColor: cor.hex }}
+                title={cor.name}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Listagem / Loading */}
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
@@ -325,72 +478,132 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {postitsFiltrados.map((item) => (
-              <div 
-                key={item.id}
-                className={`rounded-2xl p-5 border shadow-xl flex flex-col justify-between transition-transform duration-200 hover:-translate-y-1 relative group ${getCorPostIt(item.cor)}`}
-              >
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity bg-black/10 p-1 rounded-lg backdrop-blur-xs">
-                  <button 
-                    onClick={() => setPostitEmEdicao(item)}
-                    title="Editar Post-it"
-                    className="p-1 rounded hover:bg-black/20 text-zinc-900 transition-colors cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    onClick={() => handleRemover(item.id)}
-                    title="Remover Resumo"
-                    className="p-1 rounded hover:bg-rose-600 hover:text-white text-zinc-900 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            {postitsFiltrados.map((item) => {
+              const idCard = item.id;
+              const isComentarioOpen = comentariosAbertos[idCard] || false;
 
-                <div className="space-y-3 pr-12">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] uppercase font-black tracking-widest opacity-70">
-                      {item.categoria}
+              return (
+                <div 
+                  key={idCard}
+                  className={`rounded-2xl border shadow-xl flex flex-col justify-between transition-transform duration-200 hover:-translate-y-1 relative group overflow-hidden ${getCorPostIt(item.cor)}`}
+                >
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity bg-black/10 p-1 rounded-lg backdrop-blur-xs">
+                    <button 
+                      onClick={() => setPostitEmEdicao(item)}
+                      title="Editar Post-it"
+                      className="p-1 rounded hover:bg-black/20 text-zinc-900 transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => handleRemover(idCard)}
+                      title="Remover Resumo"
+                      className="p-1 rounded hover:bg-rose-600 hover:text-white text-zinc-900 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="p-5 space-y-3">
+                    <div className="flex justify-between items-center pr-12">
+                      <span className="text-[10px] uppercase font-black tracking-widest opacity-70">
+                        {item.categoria}
+                      </span>
+                      {getStatusBadge(item.status)}
+                    </div>
+
+                    <h3 className="text-base font-black tracking-tight">
+                      {item.titulo}
+                    </h3>
+
+                    {/* Descrição com Marca-Texto por Seleção */}
+                    <div 
+                      ref={el => { textRefs.current[idCard] = el; }}
+                      onMouseUp={() => handleTextSelection(idCard)}
+                      className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin select-text cursor-text bg-black/5 p-2.5 rounded-xl border border-black/10"
+                      title="Selecione qualquer trecho do texto abaixo para usar o marca-texto"
+                    >
+                      <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line">
+                        {renderizarTextoComDestaques(item)}
+                      </p>
+
+                      {/* Exibição da Imagem / Mapa Mental se houver */}
+                      {item.imagem_url && (
+                        <div className="pt-2 border-t border-black/10">
+                          <span className="text-[10px] uppercase font-bold opacity-70 block mb-1">Mapa Mental / Imagem:</span>
+                          <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={item.imagem_url} 
+                              alt="Mapa Mental" 
+                              className="w-full h-32 object-cover rounded-lg border border-black/20 hover:opacity-90 transition-opacity cursor-pointer"
+                            />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Rodapé interativo do Card (Estilo Portal de Questões) */}
+                  <div className="bg-black/10 border-t border-black/10 px-4 py-2.5 flex items-center justify-between text-xs">
+                    <button 
+                      onClick={() => setComentariosAbertos({ ...comentariosAbertos, [idCard]: !isComentarioOpen })}
+                      className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isComentarioOpen 
+                          ? 'bg-zinc-900 text-white shadow-md' 
+                          : 'bg-black/20 text-zinc-900 hover:bg-black/30'
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Comentários {item.comentarios ? '• (Salvo)' : ''}
+                    </button>
+                    
+                    <span className="text-[10px] font-bold opacity-70 truncate max-w-[120px]" title={item.materia}>
+                      {item.materia}
                     </span>
-                    {getStatusBadge(item.status)}
                   </div>
 
-                  <h3 className="text-base font-black tracking-tight">
-                    {item.titulo}
-                  </h3>
+                  {/* Caixa Expansível de Comentários / Anotações */}
+                  {isComentarioOpen && (
+                    <div className="bg-zinc-950 text-zinc-100 border-t border-zinc-800 p-4 space-y-3 animate-in fade-in duration-200">
+                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-red-500" /> Anotações do Card
+                      </h4>
 
-                  {/* Scroll interno com o texto em tópicos */}
-                  <div className="max-h-[260px] overflow-y-auto pr-1 space-y-3 scrollbar-thin">
-                    <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line">
-                      {formatarConteudoTópicos(item.conteudo)}
-                    </p>
+                      {item.comentarios && (
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                          {item.comentarios}
+                        </div>
+                      )}
 
-                    {/* Exibição da Imagem / Mapa Mental se houver */}
-                    {item.imagem_url && (
-                      <div className="pt-2 border-t border-black/10">
-                        <span className="text-[10px] uppercase font-bold opacity-70 block mb-1">Mapa Mental / Imagem:</span>
-                        <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
-                          <img 
-                            src={item.imagem_url} 
-                            alt="Mapa Mental" 
-                            className="w-full h-32 object-cover rounded-lg border border-black/20 hover:opacity-90 transition-opacity cursor-pointer"
-                          />
-                        </a>
+                      <div className="space-y-2">
+                        <textarea
+                          rows={2}
+                          placeholder="Adicionar comentário ou anotação rápida..."
+                          value={textoComentarioTemp[idCard] || ''}
+                          onChange={(e) => setTextoComentarioTemp({ ...textoComentarioTemp, [idCard]: e.target.value })}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-red-600"
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleSalvarComentarioRodape(idCard)}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
+                          >
+                            <Save className="w-3 h-3" /> Salvar Anotação
+                          </button>
+                        </div>
                       </div>
-                    )}
+                    </div>
+                  )}
+
+                  <div className="px-4 py-2 bg-black/5 border-t border-black/10 flex justify-between items-center text-[11px] font-bold opacity-75">
+                    <span className="flex items-center gap-1">
+                      <Pin className="w-3 h-3 rotate-45" /> VUNESP
+                    </span>
+                    <span>{item.categoria}</span>
                   </div>
                 </div>
-
-                <div className="pt-4 mt-4 border-t border-black/10 flex justify-between items-center text-xs font-bold">
-                  <span className="flex items-center gap-1 opacity-70 text-[11px]">
-                    <Pin className="w-3 h-3 rotate-45" /> VUNESP
-                  </span>
-                  <span className="flex items-center gap-1 opacity-90 text-[11px] truncate max-w-[140px]" title={item.materia}>
-                    {item.materia}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -444,7 +657,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
               />
             </div>
 
-            {/* Upload de Imagem do Mapa Mental */}
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
                 <ImageIcon className="w-3.5 h-3.5 text-red-500" /> 3. Anexar Imagem / Mapa Mental (Opcional):
@@ -510,6 +722,19 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-zinc-400 font-semibold">Matéria</label>
+                <select 
+                  value={postitEmEdicao.materia}
+                  onChange={(e) => setPostitEmEdicao({...postitEmEdicao, materia: e.target.value})}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                >
+                  {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Status</label>
@@ -551,7 +776,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 />
               </div>
 
-              {/* Upload de Imagem na Edição */}
               <div className="space-y-2">
                 <label className="text-zinc-400 font-semibold block">Alterar / Adicionar Imagem do Mapa Mental</label>
                 <div className="flex items-center gap-3">
