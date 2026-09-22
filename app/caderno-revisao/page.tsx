@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare, Eraser, Highlighter } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare, Highlighter } from 'lucide-react';
 
 interface PostIt {
   id: string;
@@ -94,7 +94,6 @@ export default function CadernoRevisaoPage() {
     ? postits
     : postits.filter(p => p.materia.toLowerCase() === filtroCategoria.toLowerCase() || p.categoria.toLowerCase() === filtroCategoria.toLowerCase());
 
-  // Aplica a marcação HTML diretamente no texto selecionado do textarea
   const aplicarDestaqueNoEditor = (colorClass: string) => {
     if (!postitEmEdicao || !textareaEdicaoRef.current) return;
     const textarea = textareaEdicaoRef.current;
@@ -109,7 +108,6 @@ export default function CadernoRevisaoPage() {
     const textoAtual = postitEmEdicao.conteudo;
     const selecionado = textoAtual.substring(start, end);
     
-    // Insere a tag de destaque HTML diretamente no texto
     const textoModificado = 
       textoAtual.substring(0, start) + 
       `<mark class="${colorClass}">${selecionado}</mark>` + 
@@ -126,8 +124,6 @@ export default function CadernoRevisaoPage() {
 
     const textoAtual = postitEmEdicao.conteudo;
     const selecionado = textoAtual.substring(start, end);
-
-    // Remove tags <mark> internas se houver na seleção
     const limpo = selecionado.replace(/<\/?mark[^>]*>/g, '');
 
     const textoModificado = 
@@ -202,7 +198,18 @@ export default function CadernoRevisaoPage() {
   const handleAdicionarJson = async () => {
     if (!userId) return;
     try {
-      const parsed = JSON.parse(jsonInput);
+      let jsonString = jsonInput.trim();
+      if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replace(/^```(json)?/, '').replace(/```$/, '').trim();
+      }
+
+      const firstBrace = jsonString.indexOf('{');
+      const lastBrace = jsonString.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+      }
+
+      const parsed = JSON.parse(jsonString);
       const novoItem = {
         user_id: userId,
         materia: parsed.materia || 'Direito Constitucional',
@@ -274,7 +281,7 @@ export default function CadernoRevisaoPage() {
     }
   };
 
-  const promptIaRecomendado = `Com base nos meus erros nas questões de [INSERIR MATÉRIA E O TEMA AQUI], crie um resumo objetivo e estruturado em tópicos adaptado para o concurso de Escrevente do TJSP. O retorno deve ser estritamente em formato de objeto JSON puro (sem blocos de código markdown ou texto extra fora do JSON), seguindo exatamente esta estrutura:
+  const promptIaRecomendado = `Com base nos meus erros nas questões, crie um resumo objetivo e estruturado em tópicos adaptado para o concurso de Escrevente do TJSP. O retorno deve ser estritamente em formato de objeto JSON puro (sem blocos de código markdown ou texto extra fora do JSON), seguindo exatamente esta estrutura:
 
 {
   "materia": "Nome exato da matéria (ex: Língua Portuguesa, Direito Constitucional, etc.)",
@@ -321,7 +328,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         
-        {/* Cabeçalho */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-red-950/60 border border-red-600/50 flex items-center justify-center text-red-500 shadow-lg shadow-red-950/50 shrink-0">
@@ -351,7 +357,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </button>
         </div>
 
-        {/* Filtros */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin">
             {MATERIAS_TJSP.map((cat) => (
@@ -375,7 +380,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         </div>
 
-        {/* Listagem / Loading */}
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
@@ -433,7 +437,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                       {item.titulo}
                     </h3>
 
-                    {/* Renderiza o conteúdo interpretando as tags <mark> salvas */}
                     <div className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin bg-black/5 p-2.5 rounded-xl border border-black/10">
                       <div 
                         className="text-xs leading-relaxed opacity-90 whitespace-pre-line"
@@ -455,7 +458,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                     </div>
                   </div>
 
-                  {/* Rodapé interativo do Card */}
                   <div className="bg-black/10 border-t border-black/10 px-4 py-2.5 flex items-center justify-between text-xs">
                     <button 
                       onClick={() => setComentariosAbertos({ ...comentariosAbertos, [idCard]: !isComentarioOpen })}
@@ -474,7 +476,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                     </span>
                   </div>
 
-                  {/* Caixa Expansível de Comentários / Anotações */}
                   {isComentarioOpen && (
                     <div className="bg-zinc-950 text-zinc-100 border-t border-zinc-800 p-4 space-y-3 animate-in fade-in duration-200">
                       <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
@@ -521,7 +522,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
 
       </main>
 
-      {/* MODAL: Adicionar via JSON com Upload de Imagem */}
       {modalJsonOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -605,7 +605,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
         </div>
       )}
 
-      {/* MODAL: Edição com Controles de Marca-Texto por Inserção de Tag HTML */}
       {postitEmEdicao && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -677,14 +676,12 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </div>
               </div>
 
-              {/* Bloco de Conteúdo com Barra de Marca-Texto Integrada */}
               <div className="space-y-2 pt-2 border-t border-zinc-900">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <label className="text-zinc-300 font-bold flex items-center gap-1.5">
                     <Highlighter className="w-3.5 h-3.5 text-red-500" /> Conteúdo e Ferramenta de Destaque
                   </label>
                   
-                  {/* Botões de Aplicação de Cor e Limpeza */}
                   <div className="flex items-center gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 flex-wrap">
                     <span className="text-[10px] text-zinc-400 font-semibold px-1">Grifar seleção:</span>
                     {CORES_MARCA_TEXTO.map((cor) => (
@@ -692,47 +689,45 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                         key={cor.name}
                         type="button"
                         onClick={() => aplicarDestaqueNoEditor(cor.tag)}
-                        className="w-5 h-5 rounded-md transition-transform hover:scale-110 shadow-sm border border-black/20 cursor-pointer"
-                        style={{ backgroundColor: cor.hex }}
-                        title={`Aplicar ${cor.name} no texto selecionado acima`}
-                      />
+                        className={`text-[10px] px-2 py-1 rounded font-bold transition-all cursor-pointer ${cor.tag}`}
+                      >
+                        {cor.name}
+                      </button>
                     ))}
-                    <div className="w-[1px] h-4 bg-zinc-700 mx-1"></div>
                     <button
                       type="button"
                       onClick={limparDestaquesNoEditor}
-                      className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-rose-950 text-zinc-300 hover:text-rose-300 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                      title="Remove o destaque da seleção"
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] px-2 py-1 rounded font-semibold transition-all cursor-pointer ml-1"
                     >
-                      <Eraser className="w-3 h-3" /> Limpar
+                      Remover Grifo
                     </button>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-zinc-500 italic">
-                  Dica: Selecione com o mouse o trecho exato no campo abaixo e clique em uma cor para colorir na hora.
-                </p>
-
                 <textarea 
                   ref={textareaEdicaoRef}
-                  rows={6}
+                  rows={8}
                   value={postitEmEdicao.conteudo}
                   onChange={(e) => setPostitEmEdicao({...postitEmEdicao, conteudo: e.target.value})}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600 leading-relaxed font-mono text-xs select-text"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 font-mono text-xs focus:outline-none focus:border-red-600 leading-relaxed"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-zinc-400 font-semibold block">Alterar / Adicionar Imagem do Mapa Mental</label>
+                <label className="text-zinc-400 font-semibold flex items-center gap-1">
+                  <ImageIcon className="w-3.5 h-3.5 text-red-500" /> Atualizar / Adicionar Imagem (Mapa Mental)
+                </label>
                 <div className="flex items-center gap-3">
                   <label className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 cursor-pointer transition-all">
                     <Upload className="w-4 h-4 text-red-500" />
-                    {uploadingImage ? 'Enviando...' : 'Escolher Arquivo'}
+                    {uploadingImage ? 'Enviando...' : 'Escolher Nova Imagem'}
                     <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, true)} className="hidden" />
                   </label>
                   {postitEmEdicao.imagem_url && (
-                    <span className="text-xs text-emerald-400 font-semibold">Imagem ativa</span>
+                    <span className="text-xs text-emerald-400 truncate max-w-[200px]" title={postitEmEdicao.imagem_url}>
+                      Imagem vinculada
+                    </span>
                   )}
                 </div>
               </div>
@@ -741,13 +736,13 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 <button 
                   type="button"
                   onClick={() => setPostitEmEdicao(null)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 hover:bg-zinc-800 font-semibold cursor-pointer transition-all"
+                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs font-semibold cursor-pointer transition-all"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer transition-all"
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer transition-all"
                 >
                   <Save className="w-4 h-4" /> Salvar Alterações
                 </button>

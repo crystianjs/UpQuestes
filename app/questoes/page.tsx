@@ -119,7 +119,7 @@ export default function QuestoesPage() {
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl">
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-red-500" />
-            Registo de Questões — UPQUESTOES
+            Registo de Questões — UPQUESTÕES
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
             Registe o seu progresso individual isolado por conta.
