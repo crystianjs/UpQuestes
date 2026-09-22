@@ -113,7 +113,7 @@ export default function CadernoRevisaoPage() {
       .replace(/^(\d+\.)/g, '$1');
   };
 
-  // Capturar seleção de texto para o Marca-Texto
+  // Capturar seleção de texto ao arrastar o mouse para exibir o menu flutuante idêntico ao de questões
   const handleTextSelection = (itemId: string) => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.toString().trim()) {
@@ -398,7 +398,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Post-its interativos com Marca-Texto, Comentários e Mapas Mentais
+                Cards interativos com Marca-Texto por seleção, Comentários e Mapas Mentais
               </p>
             </div>
           </div>
@@ -436,23 +436,20 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         </div>
 
-        {/* Menu Flutuante do Marca-Texto */}
+        {/* Menu Flutuante do Marca-Texto (Idêntico ao do Portal de Questões) */}
         {menuSelecao && (
           <div 
-            className="fixed z-50 bg-zinc-900 border border-zinc-700 shadow-2xl rounded-xl p-2 flex items-center gap-2 -translate-x-1/2 -translate-y-14 animate-in fade-in zoom-in duration-150"
+            className="fixed z-50 bg-white/95 backdrop-blur-md border border-zinc-300 shadow-2xl rounded-full px-3 py-1.5 flex items-center gap-2.5 -translate-x-1/2 -translate-y-16 animate-in fade-in zoom-in duration-150"
             style={{ left: menuSelecao.x, top: menuSelecao.y }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-1.5 px-2 text-[10px] text-zinc-400 font-bold border-r border-zinc-700">
-              <Highlighter className="w-3.5 h-3.5 text-red-500" /> Destaque:
-            </div>
             {CORES_MARCA_TEXTO.map((cor) => (
               <button
                 key={cor.name}
                 onClick={() => aplicarDestaque(cor.class)}
-                className="w-6 h-6 rounded-lg transition-transform hover:scale-110 shadow-sm border border-black/20 cursor-pointer"
+                className="w-5 h-5 rounded-full transition-transform hover:scale-125 shadow-sm border border-black/10 cursor-pointer"
                 style={{ backgroundColor: cor.hex }}
-                title={cor.name}
+                title={`Destacar em ${cor.name}`}
               />
             ))}
           </div>
@@ -462,7 +459,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
-            <p className="text-xs text-zinc-400">Carregando seus post-its...</p>
+            <p className="text-xs text-zinc-400">Carregando seus resumos...</p>
           </div>
         ) : postits.length === 0 ? (
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-16 text-center space-y-4">
@@ -470,7 +467,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
               <Code className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white">Nenhum post-it cadastrado</h3>
+              <h3 className="text-sm font-bold text-white">Nenhum resumo cadastrado</h3>
               <p className="text-xs text-zinc-500 max-w-sm mx-auto">
                 Clique em "Adicionar Resumo (JSON)" para injetar resumos.
               </p>
@@ -490,7 +487,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity bg-black/10 p-1 rounded-lg backdrop-blur-xs">
                     <button 
                       onClick={() => setPostitEmEdicao(item)}
-                      title="Editar Post-it"
+                      title="Editar Card"
                       className="p-1 rounded hover:bg-black/20 text-zinc-900 transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
@@ -516,12 +513,12 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                       {item.titulo}
                     </h3>
 
-                    {/* Descrição com Marca-Texto por Seleção */}
+                    {/* Descrição com Marca-Texto por Seleção Direta */}
                     <div 
                       ref={el => { textRefs.current[idCard] = el; }}
                       onMouseUp={() => handleTextSelection(idCard)}
                       className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin select-text cursor-text bg-black/5 p-2.5 rounded-xl border border-black/10"
-                      title="Selecione qualquer trecho do texto abaixo para usar o marca-texto"
+                      title="Selecione qualquer trecho do texto abaixo com o mouse para abrir o marca-texto"
                     >
                       <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line">
                         {renderizarTextoComDestaques(item)}
@@ -543,7 +540,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                     </div>
                   </div>
 
-                  {/* Rodapé interativo do Card (Estilo Portal de Questões) */}
+                  {/* Rodapé interativo do Card */}
                   <div className="bg-black/10 border-t border-black/10 px-4 py-2.5 flex items-center justify-between text-xs">
                     <button 
                       onClick={() => setComentariosAbertos({ ...comentariosAbertos, [idCard]: !isComentarioOpen })}
