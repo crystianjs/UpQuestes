@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3, Paperclip, Bookmark } from 'lucide-react';
+import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3, Paperclip, Bookmark, Maximize2 } from 'lucide-react';
 
 interface MapaMentalItem {
   id: string;
@@ -47,6 +47,9 @@ export default function MapasMentaisPage() {
 
   // Estado de Edição
   const [mapaEmEdicao, setMapaEmEdicao] = useState<MapaMentalItem | null>(null);
+
+  // Estado de Pré-visualização da Imagem (Modal de Zoom)
+  const [imagemAmpliada, setImagemAmpliada] = useState<{ url: string; titulo: string } | null>(null);
 
   // Estado de upload de imagem
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -234,7 +237,7 @@ export default function MapasMentaisPage() {
           </button>
         </div>
 
-        {/* Filtros e Busca (Com rolagem horizontal suave e scrollbar estilizada) */}
+        {/* Filtros e Busca */}
         <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             {MATERIAS_TJSP.map((cat) => (
@@ -330,16 +333,17 @@ export default function MapasMentaisPage() {
                   </h3>
                 </div>
 
-                {/* Imagem em Tamanho Amplo (Estilo Folha de Caderno) */}
+                {/* Imagem com Ação de Pré-visualização Interna (Zoom) */}
                 {item.imagem_url && (
-                  <div className="relative rounded-xl overflow-hidden border border-zinc-300 bg-white shadow-inner">
-                    <a href={item.imagem_url} target="_blank" rel="noopener noreferrer">
-                      <img 
-                        src={item.imagem_url} 
-                        alt={item.titulo} 
-                        className="w-full h-auto max-h-[550px] object-contain hover:scale-[1.01] transition-transform duration-300 cursor-pointer mx-auto bg-white p-1"
-                      />
-                    </a>
+                  <div className="relative rounded-xl overflow-hidden border border-zinc-300 bg-white shadow-inner group/img cursor-pointer" onClick={() => setImagemAmpliada({ url: item.imagem_url!, titulo: item.titulo })}>
+                    <img 
+                      src={item.imagem_url} 
+                      alt={item.titulo} 
+                      className="w-full h-auto max-h-[550px] object-contain group-hover/img:scale-[1.01] transition-transform duration-300 mx-auto bg-white p-1"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white gap-2 font-semibold text-xs">
+                      <Maximize2 className="w-4 h-4" /> Ampliar Mapa Mental
+                    </div>
                   </div>
                 )}
               </div>
@@ -348,6 +352,30 @@ export default function MapasMentaisPage() {
         )}
 
       </main>
+
+      {/* MODAL: Pré-visualização (Zoom da Imagem) em Tela Cheia */}
+      {imagemAmpliada && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-6xl flex justify-between items-center mb-4 px-4">
+            <h3 className="text-sm font-bold text-zinc-200 truncate max-w-xl">
+              {imagemAmpliada.titulo}
+            </h3>
+            <button 
+              onClick={() => setImagemAmpliada(null)}
+              className="bg-zinc-800 hover:bg-zinc-700 text-white p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            >
+              <X className="w-4 h-4" /> Fechar Visualização
+            </button>
+          </div>
+          <div className="relative max-w-full max-h-[85vh] overflow-auto bg-white rounded-2xl p-2 border border-zinc-700 shadow-2xl">
+            <img 
+              src={imagemAmpliada.url} 
+              alt={imagemAmpliada.titulo} 
+              className="max-w-full max-h-[80vh] object-contain mx-auto"
+            />
+          </div>
+        </div>
+      )}
 
       {/* MODAL: Adicionar Novo Mapa */}
       {modalOpen && (
