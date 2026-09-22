@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, Image as ImageIcon, Upload, MessageSquare, Eraser } from 'lucide-react';
 
 interface PostIt {
   id: string;
@@ -155,6 +155,33 @@ export default function CadernoRevisaoPage() {
     } catch (err) {
       console.error(err);
       alert('Erro ao salvar marca-texto.');
+    }
+  };
+
+  const limparDestaquesIntervalo = async () => {
+    if (!menuSelecao) return;
+    const { itemId, start, end } = menuSelecao;
+
+    const itemAlvo = postits.find(p => p.id === itemId);
+    if (!itemAlvo || !itemAlvo.marcos_texto) return;
+
+    // Remove os marcos que se sobrepõem à seleção atual
+    const novosMarcos = itemAlvo.marcos_texto.filter(m => !(m.start < end && m.end > start));
+
+    try {
+      const { error } = await supabase
+        .from('caderno_revisao')
+        .update({ marcos_texto: novosMarcos })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setPostits(postits.map(p => p.id === itemId ? { ...p, marcos_texto: novosMarcos } : p));
+      setMenuSelecao(null);
+      window.getSelection()?.removeAllRanges();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao limpar marca-texto.');
     }
   };
 
@@ -425,7 +452,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </div>
         </div>
 
-        {/* Menu Flutuante do Marca-Texto */}
+        {/* Menu Flutuante do Marca-Texto com Borracha de Limpeza */}
         {menuSelecao && (
           <div 
             className="fixed z-50 bg-white/95 backdrop-blur-md border border-zinc-300 shadow-2xl rounded-full px-3 py-1.5 flex items-center gap-2.5 -translate-x-1/2 -translate-y-16 animate-in fade-in zoom-in duration-150"
@@ -441,6 +468,14 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 title={`Destacar em ${cor.name}`}
               />
             ))}
+            <div className="w-[1px] h-4 bg-zinc-300 mx-0.5"></div>
+            <button
+              onClick={limparDestaquesIntervalo}
+              className="w-5 h-5 rounded-full bg-zinc-200 hover:bg-red-600 hover:text-white text-zinc-700 flex items-center justify-center transition-all shadow-sm cursor-pointer"
+              title="Remover Destaque da Seleção"
+            >
+              <Eraser className="w-3 h-3" />
+            </button>
           </div>
         )}
 
@@ -507,7 +542,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                       ref={el => { textRefs.current[idCard] = el; }}
                       onMouseUp={() => handleTextSelection(idCard)}
                       className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin select-text cursor-text bg-black/5 p-2.5 rounded-xl border border-black/10"
-                      title="Selecione qualquer trecho do texto abaixo com o mouse para abrir o marca-texto"
+                      title="Selecione qualquer trecho do texto abaixo com o mouse para abrir o marca-texto ou a borracha"
                     >
                       <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line">
                         {renderizarTextoComDestaques(item)}
