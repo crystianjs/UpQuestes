@@ -69,7 +69,7 @@ export default function CadernoRevisaoPage() {
     y: number;
   } | null>(null);
 
-  const textRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const textRefs = useRef<{ [key: string]: HTMLParagraphElement | null }>({});
 
   useEffect(() => {
     async function carregarDados() {
@@ -114,17 +114,20 @@ export default function CadernoRevisaoPage() {
 
     if (!container || !container.contains(range.commonAncestorContainer)) return;
 
-    const preRange = range.cloneRange();
+    // Cria um range auxiliar cobrindo todo o texto interno do parágrafo de conteúdo sem marca-tags ativas prévias
+    const preRange = document.createRange();
     preRange.selectNodeContents(container);
     preRange.setEnd(range.startContainer, range.startOffset);
+    
+    const selectedText = selection.toString();
     const start = preRange.toString().length;
-    const end = start + selection.toString().length;
+    const end = start + selectedText.length;
 
     const rect = range.getBoundingClientRect();
 
     setMenuSelecao({
       itemId,
-      text: selection.toString(),
+      text: selectedText,
       start,
       end,
       x: rect.left + rect.width / 2,
@@ -165,7 +168,6 @@ export default function CadernoRevisaoPage() {
     const itemAlvo = postits.find(p => p.id === itemId);
     if (!itemAlvo || !itemAlvo.marcos_texto) return;
 
-    // Remove os marcos que se sobrepõem à seleção atual
     const novosMarcos = itemAlvo.marcos_texto.filter(m => !(m.start < end && m.end > start));
 
     try {
@@ -191,6 +193,7 @@ export default function CadernoRevisaoPage() {
 
     if (marcos.length === 0) return texto;
 
+    // Ordena e limpa sobreposições para evitar conflitos de renderização de tags HTML
     const marcosOrdenados = [...marcos].sort((a, b) => a.start - b.start);
     const partes = [];
     let ultimoIndice = 0;
@@ -199,12 +202,15 @@ export default function CadernoRevisaoPage() {
       if (m.start > ultimoIndice) {
         partes.push(texto.substring(ultimoIndice, m.start));
       }
-      partes.push(
-        <span key={idx} className={m.color}>
-          {texto.substring(m.start, m.end)}
-        </span>
-      );
-      ultimoIndice = Math.max(ultimoIndice, m.end);
+      if (m.end > ultimoIndice) {
+        const inicioSub = Math.max(m.start, ultimoIndice);
+        partes.push(
+          <span key={idx} className={m.color}>
+            {texto.substring(inicioSub, m.end)}
+          </span>
+        );
+        ultimoIndice = Math.max(ultimoIndice, m.end);
+      }
     });
 
     if (ultimoIndice < texto.length) {
@@ -537,14 +543,14 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                       {item.titulo}
                     </h3>
 
-                    {/* Descrição com Marca-Texto por Seleção Direta */}
-                    <div 
-                      ref={el => { textRefs.current[idCard] = el; }}
-                      onMouseUp={() => handleTextSelection(idCard)}
-                      className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin select-text cursor-text bg-black/5 p-2.5 rounded-xl border border-black/10"
-                      title="Selecione qualquer trecho do texto abaixo com o mouse para abrir o marca-texto ou a borracha"
-                    >
-                      <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line">
+                    {/* Descrição com Marca-Texto por Seleção Direta isolada */}
+                    <div className="max-h-[240px] overflow-y-auto pr-1 space-y-3 scrollbar-thin bg-black/5 p-2.5 rounded-xl border border-black/10">
+                      <p 
+                        ref={el => { textRefs.current[idCard] = el; }}
+                        onMouseUp={() => handleTextSelection(idCard)}
+                        className="text-xs leading-relaxed opacity-90 whitespace-pre-line select-text cursor-text"
+                        title="Selecione qualquer trecho do texto abaixo com o mouse para abrir o marca-texto ou a borracha"
+                      >
                         {renderizarTextoComDestaques(item)}
                       </p>
 
