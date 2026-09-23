@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon, Filter } from 'lucide-react';
 
 const MATERIAS_TJSP = [
   'Língua Portuguesa',
@@ -42,7 +42,7 @@ export default function QuestoesPage() {
   const [erro, setErro] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Estados para Questões e Resolução com Upload
+  // Estados para Questões e Resolução com Upload e Filtro
   const [materiaResolucao, setMateriaResolucao] = useState(MATERIAS_TJSP[0]);
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -50,6 +50,7 @@ export default function QuestoesPage() {
   const [salvandoResolucao, setSalvandoResolucao] = useState(false);
   const [sucessoResolucao, setSucessoResolucao] = useState(false);
   const [listaResolucoes, setListaResolucoes] = useState<QuestaoResolucao[]>([]);
+  const [filtroMateria, setFiltroMateria] = useState('TODAS');
 
   useEffect(() => {
     async function verificarSessao() {
@@ -163,7 +164,6 @@ export default function QuestoesPage() {
     try {
       let imagemPublicUrl = null;
 
-      // 1. Faz o upload da imagem para o Supabase Storage se houver arquivo selecionado
       if (arquivoImagem) {
         const fileExt = arquivoImagem.name.split('.').pop();
         const fileName = `${userId}-${Date.now()}.${fileExt}`;
@@ -175,7 +175,6 @@ export default function QuestoesPage() {
 
         if (uploadError) throw uploadError;
 
-        // 2. Obtém a URL pública do arquivo enviado
         const { data: publicData } = supabase.storage
           .from('questoes')
           .getPublicUrl(filePath);
@@ -183,7 +182,6 @@ export default function QuestoesPage() {
         imagemPublicUrl = publicData.publicUrl;
       }
 
-      // 3. Salva os dados no banco de dados
       const novaQuestao = {
         user_id: userId,
         materia: materiaResolucao,
@@ -226,6 +224,11 @@ export default function QuestoesPage() {
       }
     }
   }
+
+  // Filtragem das resoluções cadastradas
+  const resolucoesFiltradas = filtroMateria === 'TODAS' 
+    ? listaResolucoes 
+    : listaResolucoes.filter(item => item.materia === filtroMateria);
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
@@ -374,7 +377,6 @@ export default function QuestoesPage() {
                 </select>
               </div>
 
-              {/* Botão de Upload Customizado */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-red-500" /> Print / Imagem da Questão (Opcional)
@@ -392,7 +394,6 @@ export default function QuestoesPage() {
               </div>
             </div>
 
-            {/* Preview da Imagem Selecionada */}
             {previewUrl && (
               <div className="relative rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 p-2 flex justify-center max-h-60">
                 <img src={previewUrl} alt="Preview" className="object-contain max-h-52 rounded-lg" />
@@ -428,16 +429,34 @@ export default function QuestoesPage() {
             </button>
           </form>
 
-          {/* Lista de Resoluções Salvas */}
+          {/* Seção de Filtro por Matéria e Listagem */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-lg font-bold text-white">Resoluções Cadastradas</h3>
-            {listaResolucoes.length === 0 ? (
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-xl">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Filter className="w-4 h-4 text-red-500" /> Resoluções Cadastradas
+              </h3>
+              
+              <div className="w-full md:w-72">
+                <select 
+                  value={filtroMateria}
+                  onChange={(e) => setFiltroMateria(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                >
+                  <option value="TODAS">🔍 Filtrar por Matéria (Todas)</option>
+                  {MATERIAS_TJSP.map((mat) => (
+                    <option key={mat} value={mat}>{mat}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {resolucoesFiltradas.length === 0 ? (
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 text-center text-zinc-500 text-sm">
-                Nenhuma resolução cadastrada ainda. Utilize o formulário acima para registrar.
+                Nenhuma resolução encontrada com o filtro selecionado.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {listaResolucoes.map((item) => (
+                {resolucoesFiltradas.map((item) => (
                   <div key={item.id} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4 relative group">
                     <div className="flex justify-between items-center">
                       <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">
