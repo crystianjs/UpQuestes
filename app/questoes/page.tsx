@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon, Filter } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon, Filter, Search } from 'lucide-react';
 
 const MATERIAS_TJSP = [
   'Língua Portuguesa',
@@ -24,6 +24,7 @@ const MATERIAS_TJSP = [
 interface QuestaoResolucao {
   id: string;
   materia: string;
+  assunto?: string;
   imagem_url: string;
   resolucao: string;
   created_at?: string;
@@ -42,8 +43,9 @@ export default function QuestoesPage() {
   const [erro, setErro] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Estados para Questões e Resolução com Upload e Filtro
+  // Estados para Questões e Resolução com Upload e Filtros
   const [materiaResolucao, setMateriaResolucao] = useState(MATERIAS_TJSP[0]);
+  const [assuntoResolucao, setAssuntoResolucao] = useState('');
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resolucaoTexto, setResolucaoTexto] = useState('');
@@ -51,6 +53,7 @@ export default function QuestoesPage() {
   const [sucessoResolucao, setSucessoResolucao] = useState(false);
   const [listaResolucoes, setListaResolucoes] = useState<QuestaoResolucao[]>([]);
   const [filtroMateria, setFiltroMateria] = useState('TODAS');
+  const [filtroAssunto, setFiltroAssunto] = useState('');
 
   useEffect(() => {
     async function verificarSessao() {
@@ -185,6 +188,7 @@ export default function QuestoesPage() {
       const novaQuestao = {
         user_id: userId,
         materia: materiaResolucao,
+        assunto: assuntoResolucao.trim() || null,
         imagem_url: imagemPublicUrl,
         resolucao: resolucaoTexto.trim()
       };
@@ -201,6 +205,7 @@ export default function QuestoesPage() {
       }
 
       setResolucaoTexto('');
+      setAssuntoResolucao('');
       setArquivoImagem(null);
       setPreviewUrl(null);
       setSucessoResolucao(true);
@@ -225,10 +230,13 @@ export default function QuestoesPage() {
     }
   }
 
-  // Filtragem das resoluções cadastradas
-  const resolucoesFiltradas = filtroMateria === 'TODAS' 
-    ? listaResolucoes 
-    : listaResolucoes.filter(item => item.materia === filtroMateria);
+  // Filtragem das resoluções cadastradas por Matéria e Assunto
+  const resolucoesFiltradas = listaResolucoes.filter(item => {
+    const matchMateria = filtroMateria === 'TODAS' || item.materia === filtroMateria;
+    const matchAssunto = filtroAssunto.trim() === '' || 
+      (item.assunto && item.assunto.toLowerCase().includes(filtroAssunto.toLowerCase().trim()));
+    return matchMateria && matchAssunto;
+  });
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
@@ -341,16 +349,16 @@ export default function QuestoesPage() {
           </form>
         </div>
 
-        {/* Bloco 2: Questões e Resolução com Upload */}
+        {/* Bloco 2: Questões e Resolução com Upload e Assunto */}
         <div className="space-y-6 pt-6 border-t border-zinc-800">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex justify-between items-center">
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                 <Lightbulb className="w-5 h-5 text-amber-500" />
-                Questões e Resolução
+                Caderno de Revisão & Resoluções
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Faça o upload do print da questão, selecione a matéria e estruture o método detalhado de resolução.
+                Faça o upload do print, defina a matéria, o assunto e estruture o método detalhado de resolução.
               </p>
             </div>
           </div>
@@ -378,20 +386,31 @@ export default function QuestoesPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                  <ImageIcon className="w-4 h-4 text-red-500" /> Print / Imagem da Questão (Opcional)
-                </label>
-                <label className="flex items-center justify-center gap-2 w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-red-600/60 rounded-xl px-4 py-3 text-xs font-semibold text-zinc-300 cursor-pointer transition-all">
-                  <Upload className="w-4 h-4 text-red-500" />
-                  {arquivoImagem ? arquivoImagem.name : 'Selecionar imagem do computador...'}
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleArquivoChange}
-                    className="hidden"
-                  />
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Assunto / Tópico</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: Artigo 5º, Conectivos lógicos, Homicídio..."
+                  value={assuntoResolucao}
+                  onChange={(e) => setAssuntoResolucao(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-red-500" /> Print / Imagem da Questão (Opcional)
+              </label>
+              <label className="flex items-center justify-center gap-2 w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-red-600/60 rounded-xl px-4 py-3 text-xs font-semibold text-zinc-300 cursor-pointer transition-all">
+                <Upload className="w-4 h-4 text-red-500" />
+                {arquivoImagem ? arquivoImagem.name : 'Selecionar imagem do computador...'}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleArquivoChange}
+                  className="hidden"
+                />
+              </label>
             </div>
 
             {previewUrl && (
@@ -429,39 +448,58 @@ export default function QuestoesPage() {
             </button>
           </form>
 
-          {/* Seção de Filtro por Matéria e Listagem */}
+          {/* Seção de Filtros e Listagem */}
           <div className="space-y-4 pt-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-xl">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Filter className="w-4 h-4 text-red-500" /> Resoluções Cadastradas
-              </h3>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-xl space-y-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-red-500" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Filtros de Pesquisa</h3>
+              </div>
               
-              <div className="w-full md:w-72">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <select 
                   value={filtroMateria}
                   onChange={(e) => setFiltroMateria(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
                 >
                   <option value="TODAS">🔍 Filtrar por Matéria (Todas)</option>
                   {MATERIAS_TJSP.map((mat) => (
                     <option key={mat} value={mat}>{mat}</option>
                   ))}
                 </select>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-500" />
+                  <input 
+                    type="text"
+                    placeholder="Filtrar por assunto (ex: Artigo 5º)..."
+                    value={filtroAssunto}
+                    onChange={(e) => setFiltroAssunto(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                  />
+                </div>
               </div>
             </div>
 
             {resolucoesFiltradas.length === 0 ? (
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 text-center text-zinc-500 text-sm">
-                Nenhuma resolução encontrada com o filtro selecionado.
+                Nenhuma resolução encontrada com os filtros selecionados.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
                 {resolucoesFiltradas.map((item) => (
                   <div key={item.id} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4 relative group">
-                    <div className="flex justify-between items-center">
-                      <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">
-                        {item.materia}
-                      </span>
+                    <div className="flex justify-between items-center flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">
+                          {item.materia}
+                        </span>
+                        {item.assunto && (
+                          <span className="bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs px-2.5 py-0.5 rounded-lg font-medium">
+                            {item.assunto}
+                          </span>
+                        )}
+                      </div>
                       <button 
                         onClick={() => handleExcluirResolucao(item.id)}
                         title="Excluir Resolução"
