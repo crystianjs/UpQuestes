@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookOpen, CheckCircle, AlertCircle } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, Image as ImageIcon, Lightbulb, Send, Trash2 } from 'lucide-react';
 
 // Matérias oficiais do TJSP (VUNESP)
 const MATERIAS_TJSP = [
@@ -22,6 +22,14 @@ const MATERIAS_TJSP = [
   'Estatuto da Pessoa com Deficiência'
 ];
 
+interface QuestaoResolucao {
+  id: string;
+  materia: string;
+  imagem_url: string;
+  resolucao: string;
+  created_at?: string;
+}
+
 export default function QuestoesPage() {
   const router = useRouter();
   const [materia, setMateria] = useState(MATERIAS_TJSP[0]);
@@ -35,6 +43,14 @@ export default function QuestoesPage() {
   const [erro, setErro] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
 
+  // Estados para a nova seção de Questões e Resolução
+  const [materiaResolucao, setMateriaResolucao] = useState(MATERIAS_TJSP[0]);
+  const [imagemUrl, setImagemUrl] = useState('');
+  const [resolucaoTexto, setResolucaoTexto] = useState('');
+  const [salvandoResolucao, setSalvandoResolucao] = useState(false);
+  const [sucessoResolucao, setSucessoResolucao] = useState(false);
+  const [listaResolucoes, setListaResolucoes] = useState<QuestaoResolucao[]>([]);
+
   useEffect(() => {
     async function verificarSessao() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -42,10 +58,26 @@ export default function QuestoesPage() {
         router.push('/');
       } else {
         setUserId(session.user.id);
+        carregarResolucoes(session.user.id);
       }
     }
     verificarSessao();
   }, [router]);
+
+  async function carregarResolucoes(uid: string) {
+    try {
+      const { data, error } = await supabase
+        .from('questoes_resolucao')
+        .select('*')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setListaResolucoes(data);
+    } catch (err) {
+      console.error('Erro ao carregar resoluções:', err);
+    }
+  }
 
   // Atualiza automaticamente os erros quando altera o total ou acertos
   const handleTotalChange = (val: string) => {
@@ -97,7 +129,6 @@ export default function QuestoesPage() {
       if (error) throw error;
 
       setSucesso(true);
-      // Reset parcial útil
       setAssunto('');
       setTotalFeitas(1);
       setAcertos(1);
@@ -110,110 +141,293 @@ export default function QuestoesPage() {
     }
   }
 
+  async function handleSalvarResolucao(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userId) return;
+
+    if (!resolucaoTexto.trim()) {
+      alert('Por favor, informe o método de resolução.');
+      return;
+    }
+
+    setSalvandoResolucao(true);
+    setSucessoResolucao(false);
+
+    try {
+      const novaQuestao = {
+        user_id: userId,
+        materia: materiaResolucao,
+        imagem_url: imagemUrl.trim() || null,
+        resolucao: resolucaoTexto.trim()
+      };
+
+      const { data, error } = await supabase
+        .from('questoes_resolucao')
+        .insert([novaQuestao])
+        .select();
+
+      if (error) throw error;
+
+      if (data && data[0]) {
+        setListaResolucoes([data[0], ...listaResolucoes]);
+      }
+
+      setResolucaoTexto('');
+      setImagemUrl('');
+      setSucessoResolucao(true);
+      setTimeout(() => setSucessoResolucao(false), 3000);
+    } catch (err: any) {
+      console.error('Erro ao salvar resolução:', err);
+      alert(`Erro ao guardar resolução: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setSalvandoResolucao(false);
+    }
+  }
+
+  async function handleExcluirResolucao(id: string) {
+    if (confirm('Deseja excluir permanentemente este registo de resolução?')) {
+      try {
+        const { error } = await supabase.from('questoes_resolucao').delete().eq('id', id);
+        if (error) throw error;
+        setListaResolucoes(listaResolucoes.filter(item => item.id !== id));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-4xl mx-auto px-6 py-8 space-y-12">
         
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl">
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-red-500" />
-            Registo de Questões — UPQUESTÕES
-          </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Registe o seu progresso individual isolado por conta.
-          </p>
+        {/* Bloco 1: Registo de Questões */}
+        <div className="space-y-6">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl">
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-red-500" />
+              Registo de Questões — UPQUESTÕES
+            </h1>
+            <p className="text-sm text-zinc-400 mt-1">
+              Registe o seu progresso individual isolado por conta.
+            </p>
+          </div>
+
+          {sucesso && (
+            <div className="bg-emerald-950/40 border border-emerald-600/40 p-4 rounded-xl text-emerald-400 text-sm flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 shrink-0" />
+              Registo de questões guardado com sucesso!
+            </div>
+          )}
+
+          {erro && (
+            <div className="bg-red-950/40 border border-red-600/40 p-4 rounded-xl text-red-400 text-sm flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              {erro}
+            </div>
+          )}
+
+          <form onSubmit={handleSalvarQuestoes} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Disciplina / Matéria</label>
+                <select 
+                  value={materia}
+                  onChange={(e) => setMateria(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                >
+                  {MATERIAS_TJSP.map((mat) => (
+                    <option key={mat} value={mat}>{mat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Assunto / Tópico (Opcional)</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: Negação de Proposições, Art. 5º CF..."
+                  value={assunto}
+                  onChange={(e) => setAssunto(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Feitas</label>
+                <input 
+                  type="number" 
+                  min={1}
+                  required
+                  value={totalFeitas}
+                  onChange={(e) => handleTotalChange(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                />
+              </div>
+
+              {/* Acertos com contraste Verde */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5" /> Acertos
+                </label>
+                <input 
+                  type="number" 
+                  min={0}
+                  required
+                  value={acertos}
+                  onChange={(e) => handleAcertosChange(e.target.value)}
+                  className="w-full bg-emerald-950/20 border border-emerald-600/50 rounded-xl px-4 py-3 text-sm text-emerald-300 font-bold focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+              </div>
+
+              {/* Erros com contraste Vermelho */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" /> Erros
+                </label>
+                <input 
+                  type="number" 
+                  min={0}
+                  readOnly
+                  value={erros}
+                  className="w-full bg-red-950/20 border border-red-600/50 rounded-xl px-4 py-3 text-sm text-red-400 font-bold cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit"
+              disabled={salvando}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50 cursor-pointer"
+            >
+              {salvando ? 'A guardar...' : 'Guardar Registo de Questões'}
+            </button>
+          </form>
         </div>
 
-        {sucesso && (
-          <div className="bg-emerald-950/40 border border-emerald-600/40 p-4 rounded-xl text-emerald-400 text-sm flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 shrink-0" />
-            Registo de questões guardado com sucesso!
+        {/* Bloco 2: Questões e Resolução */}
+        <div className="space-y-6 pt-6 border-t border-zinc-800">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-amber-500" />
+                Questões e Resolução
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                Adicione o print da questão, selecione a matéria e estruture o método detalhado de resolução.
+              </p>
+            </div>
           </div>
-        )}
 
-        {erro && (
-          <div className="bg-red-950/40 border border-red-600/40 p-4 rounded-xl text-red-400 text-sm flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            {erro}
-          </div>
-        )}
+          {sucessoResolucao && (
+            <div className="bg-emerald-950/40 border border-emerald-600/40 p-4 rounded-xl text-emerald-400 text-sm flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 shrink-0" />
+              Resolução guardada com sucesso!
+            </div>
+          )}
 
-        <form onSubmit={handleSalvarQuestoes} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSalvarResolucao} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Disciplina / Matéria</label>
+                <select 
+                  value={materiaResolucao}
+                  onChange={(e) => setMateriaResolucao(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                >
+                  {MATERIAS_TJSP.map((mat) => (
+                    <option key={mat} value={mat}>{mat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-red-500" /> Link do Print / Imagem da Questão (Opcional)
+                </label>
+                <input 
+                  type="url"
+                  placeholder="https://exemplo.com/print-questao.png"
+                  value={imagemUrl}
+                  onChange={(e) => setImagemUrl(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Disciplina / Matéria</label>
-              <select 
-                value={materia}
-                onChange={(e) => setMateria(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-              >
-                {MATERIAS_TJSP.map((mat) => (
-                  <option key={mat} value={mat}>{mat}</option>
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Método de Resolução & Comentários</label>
+              <textarea 
+                rows={5}
+                required
+                placeholder="Descreva o passo a passo de como resolver esta questão, pegada VUNESP, gabarito comentado ou armadilhas da banca..."
+                value={resolucaoTexto}
+                onChange={(e) => setResolucaoTexto(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors leading-relaxed"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={salvandoResolucao}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-colors shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              {salvandoResolucao ? 'A guardar resolução...' : 'Guardar Resolução da Questão'}
+            </button>
+          </form>
+
+          {/* Lista de Resoluções Salvas */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-lg font-bold text-white">Resoluções Cadastradas</h3>
+            {listaResolucoes.length === 0 ? (
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-8 text-center text-zinc-500 text-sm">
+                Nenhuma resolução cadastrada ainda. Utilize o formulário acima para registrar.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {listaResolucoes.map((item) => (
+                  <div key={item.id} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4 relative group">
+                    <div className="flex justify-between items-center">
+                      <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">
+                        {item.materia}
+                      </span>
+                      <button 
+                        onClick={() => handleExcluirResolucao(item.id)}
+                        title="Excluir Resolução"
+                        className="text-zinc-500 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {item.imagem_url && (
+                      <div className="rounded-xl overflow-hidden border border-zinc-800 max-h-80 bg-zinc-900 flex justify-center">
+                        <img 
+                          src={item.imagem_url} 
+                          alt="Print da Questão" 
+                          className="object-contain max-h-80 w-full"
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Método de Resolução:</span>
+                      <p className="text-xs text-zinc-200 whitespace-pre-wrap leading-relaxed font-sans">
+                        {item.resolucao}
+                      </p>
+                    </div>
+                  </div>
                 ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Assunto / Tópico (Opcional)</label>
-              <input 
-                type="text"
-                placeholder="Ex: Negação de Proposições, Art. 5º CF..."
-                value={assunto}
-                onChange={(e) => setAssunto(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-              />
-            </div>
+              </div>
+            )}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Feitas</label>
-              <input 
-                type="number" 
-                min={1}
-                required
-                value={totalFeitas}
-                onChange={(e) => handleTotalChange(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Acertos</label>
-              <input 
-                type="number" 
-                min={0}
-                required
-                value={acertos}
-                onChange={(e) => handleAcertosChange(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Erros</label>
-              <input 
-                type="number" 
-                min={0}
-                readOnly
-                value={erros}
-                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-400 cursor-not-allowed"
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit"
-            disabled={salvando}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50 cursor-pointer"
-          >
-            {salvando ? 'A guardar...' : 'Guardar Registo de Questões'}
-          </button>
-
-        </form>
+        </div>
 
       </main>
     </div>
