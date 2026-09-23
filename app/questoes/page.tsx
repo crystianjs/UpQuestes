@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookOpen, CheckCircle, AlertCircle, Image as ImageIcon, Lightbulb, Send, Trash2 } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon } from 'lucide-react';
 
-// Matérias oficiais do TJSP (VUNESP)
 const MATERIAS_TJSP = [
   'Língua Portuguesa',
   'Direito Penal',
@@ -43,9 +42,10 @@ export default function QuestoesPage() {
   const [erro, setErro] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Estados para a nova seção de Questões e Resolução
+  // Estados para Questões e Resolução com Upload
   const [materiaResolucao, setMateriaResolucao] = useState(MATERIAS_TJSP[0]);
-  const [imagemUrl, setImagemUrl] = useState('');
+  const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resolucaoTexto, setResolucaoTexto] = useState('');
   const [salvandoResolucao, setSalvandoResolucao] = useState(false);
   const [sucessoResolucao, setSucessoResolucao] = useState(false);
@@ -79,7 +79,6 @@ export default function QuestoesPage() {
     }
   }
 
-  // Atualiza automaticamente os erros quando altera o total ou acertos
   const handleTotalChange = (val: string) => {
     const num = val === '' ? '' : Number(val);
     setTotalFeitas(num);
@@ -93,6 +92,14 @@ export default function QuestoesPage() {
     setAcertos(num);
     if (typeof num === 'number' && typeof totalFeitas === 'number' && totalFeitas >= num) {
       setErros(totalFeitas - num);
+    }
+  };
+
+  const handleArquivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setArquivoImagem(file);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -134,7 +141,7 @@ export default function QuestoesPage() {
       setAcertos(1);
       setErros(0);
     } catch (err: any) {
-      console.error('Detalhe completo do erro do Supabase:', err);
+      console.error(err);
       setErro(`Erro ao guardar: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setSalvando(false);
@@ -154,10 +161,33 @@ export default function QuestoesPage() {
     setSucessoResolucao(false);
 
     try {
+      let imagemPublicUrl = null;
+
+      // 1. Faz o upload da imagem para o Supabase Storage se houver arquivo selecionado
+      if (arquivoImagem) {
+        const fileExt = arquivoImagem.name.split('.').pop();
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('questoes')
+          .upload(filePath, arquivoImagem);
+
+        if (uploadError) throw uploadError;
+
+        // 2. Obtém a URL pública do arquivo enviado
+        const { data: publicData } = supabase.storage
+          .from('questoes')
+          .getPublicUrl(filePath);
+
+        imagemPublicUrl = publicData.publicUrl;
+      }
+
+      // 3. Salva os dados no banco de dados
       const novaQuestao = {
         user_id: userId,
         materia: materiaResolucao,
-        imagem_url: imagemUrl.trim() || null,
+        imagem_url: imagemPublicUrl,
         resolucao: resolucaoTexto.trim()
       };
 
@@ -173,7 +203,8 @@ export default function QuestoesPage() {
       }
 
       setResolucaoTexto('');
-      setImagemUrl('');
+      setArquivoImagem(null);
+      setPreviewUrl(null);
       setSucessoResolucao(true);
       setTimeout(() => setSucessoResolucao(false), 3000);
     } catch (err: any) {
@@ -269,7 +300,6 @@ export default function QuestoesPage() {
                 />
               </div>
 
-              {/* Acertos com contraste Verde */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
                   <CheckCircle className="w-3.5 h-3.5" /> Acertos
@@ -284,7 +314,6 @@ export default function QuestoesPage() {
                 />
               </div>
 
-              {/* Erros com contraste Vermelho */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" /> Erros
@@ -309,7 +338,7 @@ export default function QuestoesPage() {
           </form>
         </div>
 
-        {/* Bloco 2: Questões e Resolução */}
+        {/* Bloco 2: Questões e Resolução com Upload */}
         <div className="space-y-6 pt-6 border-t border-zinc-800">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex justify-between items-center">
             <div>
@@ -318,7 +347,7 @@ export default function QuestoesPage() {
                 Questões e Resolução
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Adicione o print da questão, selecione a matéria e estruture o método detalhado de resolução.
+                Faça o upload do print da questão, selecione a matéria e estruture o método detalhado de resolução.
               </p>
             </div>
           </div>
@@ -345,19 +374,37 @@ export default function QuestoesPage() {
                 </select>
               </div>
 
+              {/* Botão de Upload Customizado */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                  <ImageIcon className="w-4 h-4 text-red-500" /> Link do Print / Imagem da Questão (Opcional)
+                  <ImageIcon className="w-4 h-4 text-red-500" /> Print / Imagem da Questão (Opcional)
                 </label>
-                <input 
-                  type="url"
-                  placeholder="https://exemplo.com/print-questao.png"
-                  value={imagemUrl}
-                  onChange={(e) => setImagemUrl(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-                />
+                <label className="flex items-center justify-center gap-2 w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-red-600/60 rounded-xl px-4 py-3 text-xs font-semibold text-zinc-300 cursor-pointer transition-all">
+                  <Upload className="w-4 h-4 text-red-500" />
+                  {arquivoImagem ? arquivoImagem.name : 'Selecionar imagem do computador...'}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleArquivoChange}
+                    className="hidden"
+                  />
+                </label>
               </div>
             </div>
+
+            {/* Preview da Imagem Selecionada */}
+            {previewUrl && (
+              <div className="relative rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 p-2 flex justify-center max-h-60">
+                <img src={previewUrl} alt="Preview" className="object-contain max-h-52 rounded-lg" />
+                <button
+                  type="button"
+                  onClick={() => { setArquivoImagem(null); setPreviewUrl(null); }}
+                  className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-lg text-xs font-bold shadow-md cursor-pointer"
+                >
+                  Remover imagem
+                </button>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Método de Resolução & Comentários</label>
@@ -376,8 +423,8 @@ export default function QuestoesPage() {
               disabled={salvandoResolucao}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-colors shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
-              <Send className="w-4 h-4" />
-              {salvandoResolucao ? 'A guardar resolução...' : 'Guardar Resolução da Questão'}
+              {salvandoResolucao ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {salvandoResolucao ? 'A guardar resolução e imagem...' : 'Guardar Resolução da Questão'}
             </button>
           </form>
 
