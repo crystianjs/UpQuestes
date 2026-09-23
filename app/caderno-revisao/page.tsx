@@ -4,12 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, MessageSquare, Highlighter } from 'lucide-react';
+import { BookMarked, Pin, CheckCircle2, Clock, AlertCircle, Edit3, Trash2, Code, X, Save, Copy, Check, Loader2, MessageSquare, Highlighter, Filter, Search } from 'lucide-react';
 
 interface PostIt {
   id: string;
   user_id?: string;
   materia: string;
+  assunto?: string;
   categoria: string;
   titulo: string;
   conteudo: string;
@@ -44,6 +45,8 @@ const CORES_MARCA_TEXTO = [
 export default function CadernoRevisaoPage() {
   const router = useRouter();
   const [filtroCategoria, setFiltroCategoria] = useState<string>('TODAS AS MATÉRIAS');
+  const [filtroAssunto, setFiltroAssunto] = useState<string>('');
+  const [buscaTitulo, setBuscaTitulo] = useState<string>('');
   const [postits, setPostits] = useState<PostIt[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -86,9 +89,18 @@ export default function CadernoRevisaoPage() {
 
   const dominadasCount = postits.filter(p => p.status === 'Dominada').length;
 
-  const postitsFiltrados = filtroCategoria === 'TODAS AS MATÉRIAS'
-    ? postits
-    : postits.filter(p => p.materia.toLowerCase() === filtroCategoria.toLowerCase() || p.categoria.toLowerCase() === filtroCategoria.toLowerCase());
+  const postitsFiltrados = postits.filter(item => {
+    const matchMateria = filtroCategoria === 'TODAS AS MATÉRIAS' || 
+      item.materia.toLowerCase() === filtroCategoria.toLowerCase() || 
+      item.categoria.toLowerCase() === filtroCategoria.toLowerCase();
+      
+    const matchAssunto = filtroAssunto.trim() === '' || 
+      (item.assunto && item.assunto.toLowerCase().includes(filtroAssunto.toLowerCase().trim()));
+      
+    const matchBusca = item.titulo.toLowerCase().includes(buscaTitulo.toLowerCase().trim());
+
+    return matchMateria && matchAssunto && matchBusca;
+  });
 
   const aplicarDestaqueNoEditor = (colorClass: string) => {
     if (!postitEmEdicao || !textareaEdicaoRef.current) return;
@@ -174,6 +186,7 @@ export default function CadernoRevisaoPage() {
       const novoItem = {
         user_id: userId,
         materia: parsed.materia || 'Direito Constitucional',
+        assunto: parsed.assunto || parsed.topico || null,
         categoria: parsed.categoria || 'TJSP',
         titulo: parsed.titulo || 'Resumo de Erros',
         conteudo: parsed.conteudo || parsed.resumo || 'Sem conteúdo especificado.',
@@ -213,7 +226,8 @@ export default function CadernoRevisaoPage() {
           conteudo: postitEmEdicao.conteudo,
           status: postitEmEdicao.status,
           cor: postitEmEdicao.cor,
-          materia: postitEmEdicao.materia
+          materia: postitEmEdicao.materia,
+          assunto: postitEmEdicao.assunto?.trim() || null
         })
         .eq('id', postitEmEdicao.id);
 
@@ -243,6 +257,7 @@ export default function CadernoRevisaoPage() {
 
 {
   "materia": "Nome exato da matéria (ex: Língua Portuguesa, Direito Constitucional, etc.)",
+  "assunto": "Assunto ou tópico específico (ex: Art. 5º, Crase, Inquérito Policial)",
   "categoria": "TJSP",
   "titulo": "Título curto focado no tema exato cobrado pela VUNESP",
   "conteudo": "1. Primeiro ponto essencial da teoria ou regra técnica.\n\n2. Segundo ponto essencial explicando a base da matéria.\n\n3. Terceiro ponto de fixação estruturado em tópicos um embaixo do outro.",
@@ -286,6 +301,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         
+        {/* Cabeçalho */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-red-950/60 border border-red-600/50 flex items-center justify-center text-red-500 shadow-lg shadow-red-950/50 shrink-0">
@@ -315,8 +331,9 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
           </button>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin">
+        {/* Filtros e Busca por Matéria, Assunto e Título */}
+        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-4">
+          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             {MATERIAS_TJSP.map((cat) => (
               <button
                 key={cat}
@@ -332,9 +349,35 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
             ))}
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-xs font-semibold text-zinc-300 flex items-center gap-2 shrink-0 w-full lg:w-auto justify-center">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Matérias Dominadas: <strong className="text-white">{dominadasCount} / {postits.length}</strong>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-zinc-900">
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input 
+                type="text"
+                placeholder="Filtrar por assunto (ex: Art. 5º, Crase)..."
+                value={filtroAssunto}
+                onChange={(e) => setFiltroAssunto(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+              />
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input 
+                type="text"
+                placeholder="Buscar resumo pelo título..."
+                value={buscaTitulo}
+                onChange={(e) => setBuscaTitulo(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <div className="bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-zinc-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Matérias Dominadas: <strong className="text-white">{dominadasCount} / {postits.length}</strong>
+            </div>
           </div>
         </div>
 
@@ -384,12 +427,21 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                   </div>
 
                   <div className="p-5 space-y-3">
-                    <div className="flex justify-between items-center pr-12">
+                    <div className="flex justify-between items-center pr-12 flex-wrap gap-1">
                       <span className="text-[10px] uppercase font-black tracking-widest opacity-70">
                         {item.categoria}
                       </span>
                       {getStatusBadge(item.status)}
                     </div>
+
+                    {/* Exibição opcional de Assunto no Card se houver */}
+                    {item.assunto && (
+                      <div>
+                        <span className="text-[10px] font-bold bg-black/10 px-2 py-0.5 rounded text-zinc-800">
+                          {item.assunto}
+                        </span>
+                      </div>
+                    )}
 
                     <h3 className="text-base font-black tracking-tight">
                       {item.titulo}
@@ -467,6 +519,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
 
       </main>
 
+      {/* MODAL: Adicionar JSON */}
       {modalJsonOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -509,7 +562,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 rows={6}
                 value={jsonInput}
                 onChange={(e) => setJsonInput(e.target.value)}
-                placeholder={`{\n  "materia": "Direito Constitucional",\n  "categoria": "TJSP",\n  "titulo": "Direitos Sociais",\n  "conteudo": "1. Tópico um.\n\n2. Tópico dois.",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`}
+                placeholder={`{\n  "materia": "Direito Constitucional",\n  "assunto": "Art. 5º",\n  "categoria": "TJSP",\n  "titulo": "Direitos Sociais",\n  "conteudo": "1. Tópico um.\n\n2. Tópico dois.",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs font-mono text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
               />
             </div>
@@ -532,6 +585,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
         </div>
       )}
 
+      {/* MODAL: Edição & Marca-Textos */}
       {postitEmEdicao && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -560,7 +614,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Matéria</label>
                   <select 
@@ -574,6 +628,19 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                   </select>
                 </div>
 
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
+                  <input 
+                    type="text"
+                    value={postitEmEdicao.assunto || ''}
+                    onChange={(e) => setPostitEmEdicao({...postitEmEdicao, assunto: e.target.value})}
+                    placeholder="Ex: Art. 5º, Crase..."
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Status</label>
                   <select 

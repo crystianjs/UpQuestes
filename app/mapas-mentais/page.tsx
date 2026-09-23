@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3, Paperclip, Bookmark, Maximize2 } from 'lucide-react';
+import { Network, Plus, Search, Trash2, X, Save, Loader2, Upload, Edit3, Paperclip, Bookmark, Maximize2, Filter } from 'lucide-react';
 
 interface MapaMentalItem {
   id: string;
   user_id?: string;
   materia: string;
+  assunto?: string;
   titulo: string;
   imagem_url?: string;
   cor?: string;
@@ -34,6 +35,7 @@ const MATERIAS_TJSP = [
 export default function MapasMentaisPage() {
   const router = useRouter();
   const [filtroMateria, setFiltroMateria] = useState<string>('TODAS AS MATÉRIAS');
+  const [filtroAssunto, setFiltroAssunto] = useState<string>('');
   const [busca, setBusca] = useState<string>('');
   const [mapas, setMapas] = useState<MapaMentalItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,7 @@ export default function MapasMentaisPage() {
   // Estados do Modal de Adicionar
   const [modalOpen, setModalOpen] = useState(false);
   const [novoTitulo, setNovoTitulo] = useState('');
+  const [novoAssunto, setNovoAssunto] = useState('');
   const [novaMateria, setNovaMateria] = useState('Raciocínio Lógico');
   const [imagemUrlTemp, setImagemUrlTemp] = useState('');
 
@@ -82,8 +85,10 @@ export default function MapasMentaisPage() {
 
   const mapasFiltrados = mapas.filter(item => {
     const matchMateria = filtroMateria === 'TODAS AS MATÉRIAS' || item.materia.toLowerCase() === filtroMateria.toLowerCase();
+    const matchAssunto = filtroAssunto.trim() === '' || 
+      (item.assunto && item.assunto.toLowerCase().includes(filtroAssunto.toLowerCase().trim()));
     const matchBusca = item.titulo.toLowerCase().includes(busca.toLowerCase());
-    return matchMateria && matchBusca;
+    return matchMateria && matchAssunto && matchBusca;
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdicao = false) => {
@@ -139,6 +144,7 @@ export default function MapasMentaisPage() {
       const novoItem = {
         user_id: userId,
         materia: novaMateria,
+        assunto: novoAssunto.trim() || null,
         titulo: novoTitulo,
         imagem_url: imagemUrlTemp,
         cor: 'branco'
@@ -156,6 +162,7 @@ export default function MapasMentaisPage() {
       }
 
       setNovoTitulo('');
+      setNovoAssunto('');
       setImagemUrlTemp('');
       setModalOpen(false);
     } catch (err) {
@@ -174,6 +181,7 @@ export default function MapasMentaisPage() {
         .update({
           titulo: mapaEmEdicao.titulo,
           materia: mapaEmEdicao.materia,
+          assunto: mapaEmEdicao.assunto?.trim() || null,
           imagem_url: mapaEmEdicao.imagem_url,
         })
         .eq('id', mapaEmEdicao.id);
@@ -238,8 +246,8 @@ export default function MapasMentaisPage() {
         </div>
 
         {/* Filtros e Busca */}
-        <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 lg:pb-0 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+        <div className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-4 space-y-4">
+          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             {MATERIAS_TJSP.map((cat) => (
               <button
                 key={cat}
@@ -255,15 +263,28 @@ export default function MapasMentaisPage() {
             ))}
           </div>
 
-          <div className="relative w-full lg:w-72 shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
-              type="text"
-              placeholder="Buscar mapa pelo título..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input 
+                type="text"
+                placeholder="Filtrar por assunto (ex: Art. 5º, Crase)..."
+                value={filtroAssunto}
+                onChange={(e) => setFiltroAssunto(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+              />
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input 
+                type="text"
+                placeholder="Buscar mapa pelo título..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
+              />
+            </div>
           </div>
         </div>
 
@@ -281,7 +302,7 @@ export default function MapasMentaisPage() {
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-white">Nenhum mapa mental encontrado</h3>
               <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                Adicione o seu primeiro print gerado pelo prompt da VUNESP.
+                Adicione o seu primeiro print gerado pelo prompt com os filtros selecionados.
               </p>
             </div>
           </div>
@@ -302,11 +323,18 @@ export default function MapasMentaisPage() {
                   <Bookmark className="w-3 h-3" />
                 </div>
 
-                {/* Topo do Card: Matéria e Ações */}
-                <div className="flex justify-between items-center mb-3 mt-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 bg-red-100/80 border border-red-200 px-3 py-1 rounded-md">
-                    {item.materia}
-                  </span>
+                {/* Topo do Card: Matéria, Assunto e Ações */}
+                <div className="flex justify-between items-center mb-3 mt-1 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 bg-red-100/80 border border-red-200 px-3 py-1 rounded-md">
+                      {item.materia}
+                    </span>
+                    {item.assunto && (
+                      <span className="text-[11px] font-medium text-zinc-700 bg-zinc-200/80 border border-zinc-300 px-2.5 py-1 rounded-md">
+                        {item.assunto}
+                      </span>
+                    )}
+                  </div>
 
                   <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                     <button 
@@ -407,17 +435,30 @@ export default function MapasMentaisPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-400 font-semibold">Matéria</label>
-                <select 
-                  value={novaMateria}
-                  onChange={(e) => setNovaMateria(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                >
-                  {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Matéria</label>
+                  <select 
+                    value={novaMateria}
+                    onChange={(e) => setNovaMateria(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  >
+                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
+                  <input 
+                    type="text"
+                    value={novoAssunto}
+                    onChange={(e) => setNovoAssunto(e.target.value)}
+                    placeholder="Ex: Art. 5º, Crase obrigatória..."
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 pt-2">
@@ -486,17 +527,30 @@ export default function MapasMentaisPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-400 font-semibold">Matéria</label>
-                <select 
-                  value={mapaEmEdicao.materia}
-                  onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, materia: e.target.value})}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                >
-                  {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Matéria</label>
+                  <select 
+                    value={mapaEmEdicao.materia}
+                    onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, materia: e.target.value})}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  >
+                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
+                  <input 
+                    type="text"
+                    value={mapaEmEdicao.assunto || ''}
+                    onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, assunto: e.target.value})}
+                    placeholder="Ex: Art. 5º..."
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 pt-2">
