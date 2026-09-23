@@ -210,7 +210,7 @@ export default function CadernoRevisaoPage() {
       alert('Resumo salvo com sucesso no Banco!');
     } catch (err) {
       console.error('Erro ao processar JSON:', err);
-      alert('Erro no formato JSON. Verifique se você colou apenas o objeto JSON gerado pela IA (o trecho entre chaves {}).');
+      alert('Erro no formato JSON. Verifique se você colou apenas o objeto JSON gerado pela IA.');
     }
   };
 
@@ -253,19 +253,17 @@ export default function CadernoRevisaoPage() {
     }
   };
 
-  const promptIaRecomendado = `Com base nos meus erros nas questões, crie um resumo objetivo e estruturado em tópicos adaptado para o concurso de Escrevente do TJSP. O retorno deve ser estritamente em formato de objeto JSON puro (sem blocos de código markdown ou texto extra fora do JSON), seguindo exatamente esta estrutura:
+  const promptIaRecomendado = `Com base nos meus erros nas questões, crie um resumo objetivo e estruturado em tópicos adaptado para o concurso de Escrevente do TJSP. O retorno deve ser estritamente em formato de objeto JSON puro, seguindo exatamente esta estrutura:
 
 {
-  "materia": "Nome exato da matéria (ex: Língua Portuguesa, Direito Constitucional, etc.)",
-  "assunto": "Assunto ou tópico específico (ex: Art. 5º, Crase, Inquérito Policial)",
+  "materia": "Nome exato da matéria",
+  "assunto": "Assunto ou tópico específico",
   "categoria": "TJSP",
-  "titulo": "Título curto focado no tema exato cobrado pela VUNESP",
-  "conteudo": "1. Primeiro ponto essencial da teoria ou regra técnica.\n\n2. Segundo ponto essencial explicando a base da matéria.\n\n3. Terceiro ponto de fixação estruturado em tópicos um embaixo do outro.",
+  "titulo": "Título curto focado no tema",
+  "conteudo": "1. Primeiro ponto essencial.\n\n2. Segundo ponto essencial.",
   "status": "Pendente",
   "cor": "amarelo"
-}
-
-O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa" ou "laranja". Retorne APENAS o JSON puro.`;
+}`;
 
   const copiarPrompt = () => {
     navigator.clipboard.writeText(promptIaRecomendado);
@@ -300,8 +298,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        
-        {/* Cabeçalho */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-red-950/60 border border-red-600/50 flex items-center justify-center text-red-500 shadow-lg shadow-red-950/50 shrink-0">
@@ -309,16 +305,10 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
-                  CADERNO DE REVISÃO
-                </h1>
-                <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">
-                  TJSP Escrevente
-                </span>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">CADERNO DE REVISÃO</h1>
+                <span className="bg-red-950/80 border border-red-600/40 text-red-400 text-xs px-2.5 py-0.5 rounded-lg font-bold">TJSP Escrevente</span>
               </div>
-              <p className="text-xs text-zinc-400 mt-1">
-                Cards interativos com Marca-Texto direto no Editor e Comentários
-              </p>
+              <p className="text-xs text-zinc-400 mt-1">Cards interativos com Marca-Texto direto no Editor e Comentários</p>
             </div>
           </div>
 
@@ -326,12 +316,10 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
             onClick={() => setModalJsonOpen(true)}
             className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-lg shadow-red-600/20 flex items-center gap-2 transition-all cursor-pointer w-full md:w-auto justify-center"
           >
-            <Code className="w-4 h-4" />
-            Adicionar Resumo (JSON)
+            <Code className="w-4 h-4" /> Adicionar Resumo (JSON)
           </button>
         </div>
 
-        {/* Filtros e Busca por Matéria, Assunto e Título */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-4">
           <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
             {MATERIAS_TJSP.map((cat) => (
@@ -339,9 +327,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                 key={cat}
                 onClick={() => setFiltroCategoria(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  filtroCategoria === cat
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                    : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
+                  filtroCategoria === cat ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
                 }`}
               >
                 {cat}
@@ -372,13 +358,6 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
               />
             </div>
           </div>
-
-          <div className="flex justify-end pt-1">
-            <div className="bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-zinc-300 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Matérias Dominadas: <strong className="text-white">{dominadasCount} / {postits.length}</strong>
-            </div>
-          </div>
         </div>
 
         {loading ? (
@@ -393,9 +372,7 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
             </div>
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-white">Nenhum resumo cadastrado</h3>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                Clique em "Adicionar Resumo (JSON)" para injetar resumos.
-              </p>
+              <p className="text-xs text-zinc-500 max-w-sm mx-auto">Clique em "Adicionar Resumo (JSON)" para injetar resumos.</p>
             </div>
           </div>
         ) : (
@@ -405,262 +382,96 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
               const isComentarioOpen = comentariosAbertos[idCard] || false;
 
               return (
-                <div 
-                  key={idCard}
-                  className={`rounded-2xl border shadow-xl flex flex-col justify-between transition-transform duration-200 hover:-translate-y-1 relative group overflow-hidden ${getCorPostIt(item.cor)}`}
-                >
+                <div key={idCard} className={`rounded-2xl border shadow-xl flex flex-col justify-between transition-transform duration-200 hover:-translate-y-1 relative group overflow-hidden ${getCorPostIt(item.cor)}`}>
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity bg-black/10 p-1 rounded-lg backdrop-blur-xs">
-                    <button 
-                      onClick={() => setPostitEmEdicao(item)}
-                      title="Editar Card e Gerenciar Marca-Textos"
-                      className="p-1 rounded hover:bg-black/20 text-zinc-900 transition-colors cursor-pointer"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button 
-                      onClick={() => handleRemover(idCard)}
-                      title="Remover Resumo"
-                      className="p-1 rounded hover:bg-rose-600 hover:text-white text-zinc-900 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <button onClick={() => setPostitEmEdicao(item)} title="Editar Card" className="p-1 rounded hover:bg-black/20 text-zinc-900 transition-colors cursor-pointer"><Edit3 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => handleRemover(idCard)} title="Remover" className="p-1 rounded hover:bg-rose-600 hover:text-white text-zinc-900 transition-colors cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
 
                   <div className="p-5 space-y-3">
                     <div className="flex justify-between items-center pr-12 flex-wrap gap-1">
-                      <span className="text-[10px] uppercase font-black tracking-widest opacity-70">
-                        {item.categoria}
-                      </span>
+                      <span className="text-[10px] uppercase font-black tracking-widest opacity-70">{item.categoria}</span>
                       {getStatusBadge(item.status)}
                     </div>
 
-                    {/* Exibição opcional de Assunto no Card se houver */}
                     {item.assunto && (
                       <div>
-                        <span className="text-[10px] font-bold bg-black/10 px-2 py-0.5 rounded text-zinc-800">
-                          {item.assunto}
-                        </span>
+                        <span className="text-[10px] font-bold bg-black/10 px-2 py-0.5 rounded text-zinc-800">{item.assunto}</span>
                       </div>
                     )}
 
-                    <h3 className="text-base font-black tracking-tight">
-                      {item.titulo}
-                    </h3>
+                    <h3 className="text-base font-black tracking-tight">{item.titulo}</h3>
 
                     <div className="max-h-[260px] overflow-y-auto pr-1 space-y-3 scrollbar-thin bg-black/5 p-2.5 rounded-xl border border-black/10">
-                      <div 
-                        className="text-xs leading-relaxed opacity-90 whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: item.conteudo || '' }}
-                      />
+                      <div className="text-xs leading-relaxed opacity-90 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: item.conteudo || '' }} />
                     </div>
                   </div>
 
                   <div className="bg-black/10 border-t border-black/10 px-4 py-2.5 flex items-center justify-between text-xs">
-                    <button 
-                      onClick={() => setComentariosAbertos({ ...comentariosAbertos, [idCard]: !isComentarioOpen })}
-                      className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                        isComentarioOpen 
-                          ? 'bg-zinc-900 text-white shadow-md' 
-                          : 'bg-black/20 text-zinc-900 hover:bg-black/30'
-                      }`}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Comentários {item.comentarios ? '• (Salvo)' : ''}
+                    <button onClick={() => setComentariosAbertos({ ...comentariosAbertos, [idCard]: !isComentarioOpen })} className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${isComentarioOpen ? 'bg-zinc-900 text-white shadow-md' : 'bg-black/20 text-zinc-900 hover:bg-black/30'}`}>
+                      <MessageSquare className="w-3.5 h-3.5" /> Comentários {item.comentarios ? '• (Salvo)' : ''}
                     </button>
-                    
-                    <span className="text-[10px] font-bold opacity-70 truncate max-w-[120px]" title={item.materia}>
-                      {item.materia}
-                    </span>
+                    <span className="text-[10px] font-bold opacity-70 truncate max-w-[120px]" title={item.materia}>{item.materia}</span>
                   </div>
 
                   {isComentarioOpen && (
                     <div className="bg-zinc-950 text-zinc-100 border-t border-zinc-800 p-4 space-y-3 animate-in fade-in duration-200">
-                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                        <MessageSquare className="w-3.5 h-3.5 text-red-500" /> Anotações do Card
-                      </h4>
-
+                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5 text-red-500" /> Anotações</h4>
                       {item.comentarios && (
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed">
-                          {item.comentarios}
-                        </div>
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed">{item.comentarios}</div>
                       )}
-
                       <div className="space-y-2">
-                        <textarea
-                          rows={2}
-                          placeholder="Adicionar comentário ou anotação rápida..."
-                          value={textoComentarioTemp[idCard] || ''}
-                          onChange={(e) => setTextoComentarioTemp({ ...textoComentarioTemp, [idCard]: e.target.value })}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-red-600"
-                        />
+                        <textarea rows={2} placeholder="Adicionar anotação..." value={textoComentarioTemp[idCard] || ''} onChange={(e) => setTextoComentarioTemp({ ...textoComentarioTemp, [idCard]: e.target.value })} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-red-600" />
                         <div className="flex justify-end">
-                          <button
-                            onClick={() => handleSalvarComentarioRodape(idCard)}
-                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
-                          >
-                            <Save className="w-3 h-3" /> Salvar Anotação
-                          </button>
+                          <button onClick={() => handleSalvarComentarioRodape(idCard)} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer"><Save className="w-3 h-3" /> Salvar</button>
                         </div>
                       </div>
                     </div>
                   )}
-
-                  <div className="px-4 py-2 bg-black/5 border-t border-black/10 flex justify-between items-center text-[11px] font-bold opacity-75">
-                    <span className="flex items-center gap-1">
-                      <Pin className="w-3 h-3 rotate-45" /> VUNESP
-                    </span>
-                    <span>{item.categoria}</span>
-                  </div>
                 </div>
               );
             })}
           </div>
         )}
-
       </main>
 
-      {/* MODAL: Adicionar JSON */}
-      {modalJsonOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Code className="w-5 h-5 text-red-500" />
-                Adicionar Resumo (JSON)
-              </h3>
-              <button 
-                onClick={() => setModalJsonOpen(false)}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider">
-                  1. Copie o prompt otimizado:
-                </span>
-                <button
-                  onClick={copiarPrompt}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer font-semibold"
-                >
-                  {copiado ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiado ? 'Copiado!' : 'Copiar Prompt'}
-                </button>
-              </div>
-              <pre className="text-[11px] font-mono text-zinc-300 bg-black/40 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">
-                {promptIaRecomendado}
-              </pre>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                2. Cole o JSON gerado abaixo:
-              </span>
-              <textarea 
-                rows={6}
-                value={jsonInput}
-                onChange={(e) => setJsonInput(e.target.value)}
-                placeholder={`{\n  "materia": "Direito Constitucional",\n  "assunto": "Art. 5º",\n  "categoria": "TJSP",\n  "titulo": "Direitos Sociais",\n  "conteudo": "1. Tópico um.\n\n2. Tópico dois.",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs font-mono text-zinc-100 focus:outline-none focus:border-red-600 transition-colors"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-zinc-900">
-              <button 
-                onClick={() => setModalJsonOpen(false)}
-                className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs font-semibold cursor-pointer transition-all"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleAdicionarJson}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer transition-all"
-              >
-                <Code className="w-4 h-4" /> Salvar no Banco
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Edição & Marca-Textos */}
+      {/* MODAL EDITAR */}
       {postitEmEdicao && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-red-500" />
-                Editar Resumo & Marca-Textos
-              </h3>
-              <button 
-                onClick={() => setPostitEmEdicao(null)}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-900 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <h3 className="text-base font-bold text-white flex items-center gap-2"><Edit3 className="w-5 h-5 text-red-500" /> Editar Resumo</h3>
+              <button onClick={() => setPostitEmEdicao(null)} className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
-
             <form onSubmit={handleSalvarEdicao} className="space-y-4 text-xs">
               <div className="space-y-1.5">
                 <label className="text-zinc-400 font-semibold">Título</label>
-                <input 
-                  type="text"
-                  value={postitEmEdicao.titulo}
-                  onChange={(e) => setPostitEmEdicao({...postitEmEdicao, titulo: e.target.value})}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  required
-                />
+                <input type="text" value={postitEmEdicao.titulo} onChange={(e) => setPostitEmEdicao({...postitEmEdicao, titulo: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600" required />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Matéria</label>
-                  <select 
-                    value={postitEmEdicao.materia}
-                    onChange={(e) => setPostitEmEdicao({...postitEmEdicao, materia: e.target.value})}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
-                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
+                  <select value={postitEmEdicao.materia} onChange={(e) => setPostitEmEdicao({...postitEmEdicao, materia: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600">
+                    {MATERIAS_TJSP.filter(m => m !== 'TODAS AS MATÉRIAS').map(m => (<option key={m} value={m}>{m}</option>))}
                   </select>
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
-                  <input 
-                    type="text"
-                    value={postitEmEdicao.assunto || ''}
-                    onChange={(e) => setPostitEmEdicao({...postitEmEdicao, assunto: e.target.value})}
-                    placeholder="Ex: Art. 5º, Crase..."
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  />
+                  <input type="text" value={postitEmEdicao.assunto || ''} onChange={(e) => setPostitEmEdicao({...postitEmEdicao, assunto: e.target.value})} placeholder="Ex: Art. 5º, Crase..." className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600" />
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Status</label>
-                  <select 
-                    value={postitEmEdicao.status}
-                    onChange={(e) => setPostitEmEdicao({...postitEmEdicao, status: e.target.value as any})}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
+                  <select value={postitEmEdicao.status} onChange={(e) => setPostitEmEdicao({...postitEmEdicao, status: e.target.value as any})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600">
                     <option value="Pendente">Pendente</option>
                     <option value="Revisando">Revisando</option>
                     <option value="Dominada">Dominada</option>
                   </select>
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Cor do Card</label>
-                  <select 
-                    value={postitEmEdicao.cor}
-                    onChange={(e) => setPostitEmEdicao({...postitEmEdicao, cor: e.target.value as any})}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  >
+                  <label className="text-zinc-400 font-semibold">Cor</label>
+                  <select value={postitEmEdicao.cor} onChange={(e) => setPostitEmEdicao({...postitEmEdicao, cor: e.target.value as any})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600">
                     <option value="amarelo">Amarelo</option>
                     <option value="rosa">Rosa</option>
                     <option value="verde">Verde</option>
@@ -669,65 +480,53 @@ O campo 'cor' deve ser estritamente um destes: "amarelo", "azul", "verde", "rosa
                   </select>
                 </div>
               </div>
-
               <div className="space-y-2 pt-2 border-t border-zinc-900">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <label className="text-zinc-300 font-bold flex items-center gap-1.5">
-                    <Highlighter className="w-3.5 h-3.5 text-red-500" /> Conteúdo e Ferramenta de Destaque
-                  </label>
-                  
-                  <div className="flex items-center gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 flex-wrap">
-                    <span className="text-[10px] text-zinc-400 font-semibold px-1">Grifar seleção:</span>
+                <div className="flex justify-between items-center">
+                  <label className="text-zinc-300 font-bold flex items-center gap-1.5"><Highlighter className="w-3.5 h-3.5 text-red-500" /> Conteúdo</label>
+                  <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
                     {CORES_MARCA_TEXTO.map((cor) => (
-                      <button
-                        key={cor.name}
-                        type="button"
-                        onClick={() => aplicarDestaqueNoEditor(cor.tag)}
-                        className={`text-[10px] px-2 py-1 rounded font-bold transition-all cursor-pointer ${cor.tag}`}
-                      >
-                        {cor.name}
-                      </button>
+                      <button key={cor.name} type="button" onClick={() => aplicarDestaqueNoEditor(cor.tag)} className={`text-[10px] px-2 py-1 rounded font-bold cursor-pointer ${cor.tag}`}>{cor.name}</button>
                     ))}
-                    <button
-                      type="button"
-                      onClick={limparDestaquesNoEditor}
-                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] px-2 py-1 rounded font-semibold transition-all cursor-pointer ml-1"
-                    >
-                      Remover Grifo
-                    </button>
+                    <button type="button" onClick={limparDestaquesNoEditor} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] px-2 py-1 rounded font-semibold cursor-pointer">Limpar</button>
                   </div>
                 </div>
-
-                <textarea 
-                  ref={textareaEdicaoRef}
-                  rows={8}
-                  value={postitEmEdicao.conteudo}
-                  onChange={(e) => setPostitEmEdicao({...postitEmEdicao, conteudo: e.target.value})}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 font-mono text-xs focus:outline-none focus:border-red-600 leading-relaxed"
-                  required
-                />
+                <textarea ref={textareaEdicaoRef} rows={8} value={postitEmEdicao.conteudo} onChange={(e) => setPostitEmEdicao({...postitEmEdicao, conteudo: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 font-mono text-xs focus:outline-none focus:border-red-600 leading-relaxed" required />
               </div>
-
               <div className="flex justify-end gap-3 pt-3 border-t border-zinc-900">
-                <button 
-                  type="button"
-                  onClick={() => setPostitEmEdicao(null)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs font-semibold cursor-pointer transition-all"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer transition-all"
-                >
-                  <Save className="w-4 h-4" /> Salvar Alterações
-                </button>
+                <button type="button" onClick={() => setPostitEmEdicao(null)} className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs font-semibold cursor-pointer">Cancelar</button>
+                <button type="submit" className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer"><Save className="w-4 h-4" /> Salvar</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* MODAL JSON */}
+      {modalJsonOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-xl p-6 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center">
+              <h3 className="text-base font-bold text-white flex items-center gap-2"><Code className="w-5 h-5 text-red-500" /> Adicionar Resumo (JSON)</h3>
+              <button onClick={() => setModalJsonOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold text-red-400 uppercase">1. Copie o prompt:</span>
+                <button onClick={copiarPrompt} className="bg-zinc-800 text-zinc-200 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer font-semibold">{copiado ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}{copiado ? 'Copiado!' : 'Copiar'}</button>
+              </div>
+              <pre className="text-[11px] font-mono text-zinc-300 bg-black/40 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">{promptIaRecomendado}</pre>
+            </div>
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-zinc-400 uppercase">2. Cole o JSON:</span>
+              <textarea rows={6} value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} placeholder={`{\n  "materia": "Direito Constitucional",\n  "assunto": "Art. 5º",\n  "categoria": "TJSP",\n  "titulo": "Direitos",\n  "conteudo": "Texto",\n  "status": "Pendente",\n  "cor": "amarelo"\n}`} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs font-mono text-zinc-100 focus:outline-none focus:border-red-600" />
+            </div>
+            <div className="flex justify-end gap-3 pt-2 border-t border-zinc-900">
+              <button onClick={() => setModalJsonOpen(false)} className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 text-xs font-semibold cursor-pointer">Cancelar</button>
+              <button onClick={handleAdicionarJson} className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/20 flex items-center gap-2 cursor-pointer"><Code className="w-4 h-4" /> Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
