@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon, Filter, Search } from 'lucide-react';
+import { BookOpen, CheckCircle, AlertCircle, Upload, Lightbulb, Send, Trash2, Loader2, Image as ImageIcon, Filter, Search, Maximize2, X } from 'lucide-react';
 
 const MATERIAS_TJSP = [
   'Língua Portuguesa',
@@ -54,6 +54,9 @@ export default function QuestoesPage() {
   const [listaResolucoes, setListaResolucoes] = useState<QuestaoResolucao[]>([]);
   const [filtroMateria, setFiltroMateria] = useState('TODAS');
   const [filtroAssunto, setFiltroAssunto] = useState('');
+  
+  // Estado para o Modal de Ampliação de Imagem
+  const [imagemModal, setImagemModal] = useState<string | null>(null);
 
   useEffect(() => {
     async function verificarSessao() {
@@ -510,13 +513,21 @@ export default function QuestoesPage() {
                     </div>
 
                     {item.imagem_url && (
-                      <div className="rounded-xl overflow-hidden border border-zinc-800 max-h-80 bg-zinc-900 flex justify-center">
+                      <div className="relative rounded-xl overflow-hidden border border-zinc-800 max-h-80 bg-zinc-900 flex justify-center group/img">
                         <img 
                           src={item.imagem_url} 
                           alt="Print da Questão" 
                           className="object-contain max-h-80 w-full"
                           onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                         />
+                        {/* Botão flutuante de Ampliar/Zoom (Funciona perfeitamente em mobile e desktop) */}
+                        <button
+                          type="button"
+                          onClick={() => setImagemModal(item.imagem_url)}
+                          className="absolute bottom-3 right-3 bg-black/80 hover:bg-red-600 text-white p-2 rounded-xl backdrop-blur-md transition-colors shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-bold border border-zinc-700/50"
+                        >
+                          <Maximize2 className="w-4 h-4" /> Ampliar Print
+                        </button>
                       </div>
                     )}
 
@@ -534,6 +545,28 @@ export default function QuestoesPage() {
         </div>
 
       </main>
+
+      {/* Modal de Pré-visualização Ampliada (Lightbox) */}
+      {imagemModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setImagemModal(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setImagemModal(null)}
+              className="absolute -top-12 right-0 bg-zinc-800 hover:bg-red-600 text-white p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
+            >
+              <X className="w-5 h-5" /> Fechar
+            </button>
+            <img 
+              src={imagemModal} 
+              alt="Print Ampliado" 
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-zinc-800 shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
