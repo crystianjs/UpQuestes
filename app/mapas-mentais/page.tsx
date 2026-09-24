@@ -12,7 +12,6 @@ interface MapaMentalItem {
   materia: string;
   assunto?: string;
   titulo: string;
-  tempo_verbal?: string;
   imagem_url?: string;
   cor?: string;
 }
@@ -46,7 +45,6 @@ export default function MapasMentaisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novoAssunto, setNovoAssunto] = useState('');
-  const [novoTempoVerbal, setNovoTempoVerbal] = useState('');
   const [novaMateria, setNovaMateria] = useState('Língua Portuguesa');
   const [imagemUrlTemp, setImagemUrlTemp] = useState('');
 
@@ -148,7 +146,6 @@ export default function MapasMentaisPage() {
         materia: novaMateria,
         assunto: novoAssunto.trim() || null,
         titulo: novoTitulo,
-        tempo_verbal: novoTempoVerbal.trim() || null,
         imagem_url: imagemUrlTemp,
         cor: 'branco'
       };
@@ -166,7 +163,6 @@ export default function MapasMentaisPage() {
 
       setNovoTitulo('');
       setNovoAssunto('');
-      setNovoTempoVerbal('');
       setImagemUrlTemp('');
       setModalOpen(false);
     } catch (err: any) {
@@ -186,7 +182,6 @@ export default function MapasMentaisPage() {
           titulo: mapaEmEdicao.titulo,
           materia: mapaEmEdicao.materia,
           assunto: mapaEmEdicao.assunto?.trim() || null,
-          tempo_verbal: mapaEmEdicao.tempo_verbal?.trim() || null,
           imagem_url: mapaEmEdicao.imagem_url,
         })
         .eq('id', mapaEmEdicao.id);
@@ -328,7 +323,7 @@ export default function MapasMentaisPage() {
                   <Bookmark className="w-3 h-3" />
                 </div>
 
-                {/* Topo do Card: Matéria, Assunto, Tempo Verbal e Ações */}
+                {/* Topo do Card: Matéria, Assunto e Ações */}
                 <div className="flex justify-between items-center mb-3 mt-1 flex-wrap gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 bg-red-100/80 border border-red-200 px-3 py-1 rounded-md">
@@ -337,11 +332,6 @@ export default function MapasMentaisPage() {
                     {item.assunto && (
                       <span className="text-[11px] font-medium text-zinc-700 bg-zinc-200/80 border border-zinc-300 px-2.5 py-1 rounded-md">
                         {item.assunto}
-                      </span>
-                    )}
-                    {item.tempo_verbal && (
-                      <span className="text-[11px] font-medium text-amber-800 bg-amber-100/80 border border-amber-300 px-2.5 py-1 rounded-md">
-                        Verbo: {item.tempo_verbal}
                       </span>
                     )}
                   </div>
@@ -447,17 +437,6 @@ export default function MapasMentaisPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Tempo Verbal</label>
-                  <input 
-                    type="text"
-                    value={novoTempoVerbal}
-                    onChange={(e) => setNovoTempoVerbal(e.target.value)}
-                    placeholder="Ex: Presente / Passado"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Matéria</label>
                   <select 
                     value={novaMateria}
@@ -469,17 +448,17 @@ export default function MapasMentaisPage() {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
-                <input 
-                  type="text"
-                  value={novoAssunto}
-                  onChange={(e) => setNovoAssunto(e.target.value)}
-                  placeholder="Ex: Art. 5º, Crase obrigatória..."
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                />
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
+                  <input 
+                    type="text"
+                    value={novoAssunto}
+                    onChange={(e) => setNovoAssunto(e.target.value)}
+                    placeholder="Ex: Art. 5º, Crase obrigatória..."
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 pt-2">
@@ -550,16 +529,6 @@ export default function MapasMentaisPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-zinc-400 font-semibold">Tempo Verbal</label>
-                  <input 
-                    type="text"
-                    value={mapaEmEdicao.tempo_verbal || ''}
-                    onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, tempo_verbal: e.target.value})}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
                   <label className="text-zinc-400 font-semibold">Matéria</label>
                   <select 
                     value={mapaEmEdicao.materia}
@@ -571,17 +540,17 @@ export default function MapasMentaisPage() {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
-                <input 
-                  type="text"
-                  value={mapaEmEdicao.assunto || ''}
-                  onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, assunto: e.target.value})}
-                  placeholder="Ex: Art. 5º..."
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
-                />
+                <div className="space-y-1.5">
+                  <label className="text-zinc-400 font-semibold">Assunto / Tópico</label>
+                  <input 
+                    type="text"
+                    value={mapaEmEdicao.assunto || ''}
+                    onChange={(e) => setMapaEmEdicao({...mapaEmEdicao, assunto: e.target.value})}
+                    placeholder="Ex: Art. 5º..."
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-zinc-100 focus:outline-none focus:border-red-600"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 pt-2">
